@@ -2,5 +2,13 @@
   "name": "@pipeline-lab/engine",
   "private": true,
   "type": "module",
-  "exports": "./src/index.ts"
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@actions/expressions": "^0.3.61",
+    "@actions/workflow-parser": "^0.3.61",
+    "yaml": "^2.9.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
 }
