@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  --color-*: initial;
+  --color-paper: light-dark(#f3f5f7, #11161d);
+  --color-surface: light-dark(#ffffff, #19202a);
+  --color-ink: light-dark(#18202b, #dce3eb);
+  --color-muted: light-dark(#56606c, #9aa5b1);
+  --color-rule: light-dark(#d5dbe2, #2c3542);
+  --color-signal: light-dark(#2a55d0, #86a6ff);
+  --color-go: light-dark(#1b7444, #52c48b);
+  --color-stop: light-dark(#be3329, #ff8173);
+  --color-caution: light-dark(#8f5300, #eda949);
+
+  --font-sans: "Atkinson Hyperlegible Next Variable", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --radius-*: initial;
+  --radius-base: 4px;
+}
+
+/* light-dark() follows color-scheme, so the theme switch only sets this attribute. */
+:root {
+  color-scheme: light dark;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
