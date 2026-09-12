@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Image tag to deploy. Leave empty to deploy this commit, or pass an earlier commit SHA to roll back.
+        type: string
+        required: false
+
+# Least privilege by default; a job asks for more only where it needs it.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Only pull request runs are safe to cancel; a run on main may be deploying.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE: ghcr.io/thongam-bikash/pipeline-lab-web
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  e2e:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7
+
+  image:
+    needs: [check, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # Only this job may write to the registry.
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Log in to the registry
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USERNAME: ${{ github.actor }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "$USERNAME" --password-stdin
+      - name: Build and push the image
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          docker build -f apps/web/Dockerfile -t "$IMAGE:$SHA" -t "$IMAGE:latest" .
+          docker push "$IMAGE:$SHA"
+          docker push "$IMAGE:latest"
+
+  deploy:
+    needs: [check, e2e, image]
+    # Runs after a merge to main, and for a manual rollback to an earlier tag.
+    # Stays skipped until a server exists and the SITE_URL variable is set.
+    if: >-
+      !cancelled()
+      && vars.SITE_URL != ''
+      && github.ref == 'refs/heads/main'
+      && needs.check.result == 'success'
+      && needs.e2e.result == 'success'
+      && (needs.image.result == 'success' || needs.image.result == 'skipped')
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: ${{ vars.SITE_URL }}
+    concurrency:
+      # A deploy is never cancelled halfway.
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up the deploy key
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Copy the compose file
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "$USER@$HOST" 'mkdir -p ~/pipeline-lab'
+          scp -i ~/.ssh/id_ed25519 infra/compose.yml "$USER@$HOST:~/pipeline-lab/compose.yml"
+      - name: Pull and start the new image
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          TAG: ${{ inputs.tag || github.sha }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "$USER@$HOST" \
+            "cd ~/pipeline-lab && IMAGE_TAG=$TAG docker compose pull && IMAGE_TAG=$TAG docker compose up -d"
+      - name: Check the site answers
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: curl -fsS --retry 10 --retry-delay 3 --retry-all-errors -o /dev/null -w 'status %{http_code}\n' "$SITE_URL"
+      - name: Keep only the last few images
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+        # Ours only: a global prune would delete images belonging to the droplet's other services.
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "$USER@$HOST" \
+            "docker image ls '$IMAGE' --format '{{.ID}} {{.CreatedAt}}' | sort -k2 -r | tail -n +4 | cut -d' ' -f1 | xargs -r docker rmi -f" || true

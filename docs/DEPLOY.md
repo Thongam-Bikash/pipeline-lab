@@ -105,6 +105,41 @@ IMAGE_TAG=<commit sha> docker compose -f compose.yml up -d
 curl -fsS -o /dev/null -w '%{http_code}\n' https://<your domain>/
 ```
 
+## The deploy workflow
+
+`.github/workflows/ci.yml` does all of it:
+
+| Job | When | What it does |
+|---|---|---|
+| `check` | every push and pull request | lint, typecheck, unit tests with the engine coverage gate |
+| `e2e` | every push and pull request | Playwright against the production build |
+| `image` | push to `main` | builds the image and pushes it to the registry, tagged with the commit SHA and `latest` |
+| `deploy` | push to `main`, or a manual run | copies `compose.yml`, pulls the tag, restarts the container, checks the site answers |
+
+The workflow asks for `contents: read` and nothing more; only `image` adds `packages: write`. Every secret reaches the shell through `env:` rather than string interpolation, which is the habit that prevents script injection.
+
+Pull request runs cancel when you push again. Runs on `main` do not, and `deploy` has its own concurrency group so a deploy is never cancelled halfway.
+
+Until the `SITE_URL` variable is set, `deploy` skips itself. Everything else still runs on every merge, and the image is still built and pushed, so the server can be set up whenever you are ready without the workflow failing in the meantime.
+
+### Secrets and variables to create
+
+On the repository's `production` environment:
+
+| Name | Kind | Value |
+|---|---|---|
+| `DEPLOY_HOST` | secret | the droplet's hostname or IP |
+| `DEPLOY_USER` | secret | `deploy` |
+| `DEPLOY_SSH_KEY` | secret | the private half of the deploy key |
+| `DEPLOY_KNOWN_HOSTS` | secret | output of `ssh-keyscan <host>` |
+| `SITE_URL` | variable | `https://<your domain>/` |
+
+Pinning `known_hosts` matters. Without it the deploy would accept any host key it is offered, which is how a deploy ends up talking to the wrong machine.
+
+### Rolling back
+
+Run the workflow by hand (Actions, then CI, then Run workflow) and put an earlier commit SHA in the `tag` field. The deploy job pulls that image instead of building a new one, so a rollback is a pull and a restart. The checks still run first, so a rollback cannot ship something that fails its own tests.
+
 ## Rules for this droplet
 
 - Inspect before changing. Report what is there before touching it.
