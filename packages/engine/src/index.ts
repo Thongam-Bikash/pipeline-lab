@@ -1,4 +1,5 @@
 export { isTooFrequent, nextRuns, parseCron } from './cron'
 export { loadWorkflow } from './parse'
 export { SUPPORTED } from './supported'
-export type { Diagnostic, ParseResult, Severity } from './types'
+export { matchEvent, matchFilter } from './triggers'
+export type { Diagnostic, EventsConfig, MatchResult, ParseResult, Severity, SimEvent } from './types'

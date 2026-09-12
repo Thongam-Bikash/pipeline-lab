@@ -19,6 +19,8 @@ export type Cron = {
 }
 
 const MINUTE = 60_000
+const HOUR = 3_600_000
+const DAY = 86_400_000
 
 function single(value: string, f: Field): number | undefined {
   const named = f.names?.indexOf(value.toLowerCase()) ?? -1
@@ -82,35 +84,74 @@ export function isTooFrequent(cron: Cron): boolean {
 
 export function zonedFormatter(timeZone: string): Intl.DateTimeFormat {
   try {
-    return new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', month: 'numeric', day: 'numeric', weekday: 'short', hour: 'numeric', minute: 'numeric' })
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+    })
   } catch {
     throw new Error(`"${timeZone}" is not a known time zone. Use an IANA name such as "America/New_York".`)
   }
 }
 
+// Wall-clock time at an instant, expressed as if that local time were UTC.
+function wallClock(fmt: Intl.DateTimeFormat, t: number): number {
+  const p = Object.fromEntries(fmt.formatToParts(t).map((part) => [part.type, part.value]))
+  return Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute))
+}
+
+// First instant whose wall-clock time is at or after `wanted`, searching a known transition window.
+function afterTransition(fmt: Intl.DateTimeFormat, lo: number, hi: number, wanted: number): number {
+  while (hi - lo > MINUTE) {
+    const mid = Math.floor((lo + hi) / 2 / MINUTE) * MINUTE
+    if (wallClock(fmt, mid) >= wanted) hi = mid
+    else lo = mid
+  }
+  return hi
+}
+
+function instantFor(fmt: Intl.DateTimeFormat, wanted: number): number {
+  const early = wanted - (wallClock(fmt, wanted - DAY) - (wanted - DAY))
+  const late = wanted - (wallClock(fmt, wanted + DAY) - (wanted + DAY))
+  // A repeated hour resolves to its first occurrence.
+  if (wallClock(fmt, early) === wanted) return early
+  if (wallClock(fmt, late) === wanted) return late
+  // Daylight saving skips this local time, so the run advances to the next valid one.
+  return afterTransition(fmt, Math.min(early, late), Math.max(early, late), wanted)
+}
+
 export function nextRuns(expr: string, from: Date, count: number, timeZone = 'UTC'): Date[] {
   const {
-    fields: [minute, hour, dom, month, dow],
+    fields: [minuteField, hourField, dom, month, dow],
     eitherDay,
   } = parseCron(expr)
   const fmt = zonedFormatter(timeZone)
+  const minutes = [...minuteField].sort((a, b) => a - b)
+  const hours = [...hourField].sort((a, b) => a - b)
+  const start = Math.floor(from.getTime() / MINUTE) * MINUTE
 
   const runs: Date[] = []
-  let t = Math.floor(from.getTime() / MINUTE) * MINUTE + MINUTE
-  // ponytail: scans hour by hour for up to ~5.7 years; plenty for previewing a few runs
-  for (let steps = 0; runs.length < count && steps < 50_000; steps++) {
-    const p = Object.fromEntries(fmt.formatToParts(t).map((part) => [part.type, part.value]))
-    const m = Number(p.minute)
-    const onDom = dom.has(Number(p.day))
-    const onDow = dow.has(DAYS.indexOf(p.weekday!.toLowerCase()))
-    const dayOk = eitherDay ? onDom || onDow : onDom && onDow
-    if (!month.has(Number(p.month)) || !dayOk || !hour.has(Number(p.hour))) {
-      t += (60 - m) * MINUTE
-    } else if (!minute.has(m)) {
-      t += MINUTE
-    } else {
-      runs.push(new Date(t))
-      t += MINUTE
+  let date = wallClock(fmt, start)
+  date -= date % DAY
+  // ponytail: walks up to ~5.7 years of calendar days; plenty for previewing a few runs
+  for (let days = 0; days < 2100; days++, date += DAY) {
+    const day = new Date(date)
+    const onDom = dom.has(day.getUTCDate())
+    const onDow = dow.has(day.getUTCDay())
+    if (!month.has(day.getUTCMonth() + 1)) continue
+    if (!(eitherDay ? onDom || onDow : onDom && onDow)) continue
+    for (const hour of hours) {
+      for (const minute of minutes) {
+        const t = instantFor(fmt, date + hour * HOUR + minute * MINUTE)
+        // An advanced time can land on one that is already scheduled.
+        if (t <= start || t === runs[runs.length - 1]?.getTime()) continue
+        runs.push(new Date(t))
+        if (runs.length === count) return runs
+      }
     }
   }
   return runs

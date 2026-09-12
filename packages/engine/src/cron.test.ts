@@ -61,6 +61,10 @@ describe('nextRuns', () => {
     expect(iso(nextRuns('0 3 * * 1-5', friday, 2))).toEqual(['2026-09-11T03:00:00.000Z', '2026-09-14T03:00:00.000Z'])
   })
 
+  it('returns several runs in the same hour in order', () => {
+    expect(iso(nextRuns('45,30 3 * * *', friday, 2))).toEqual(['2026-09-11T03:30:00.000Z', '2026-09-11T03:45:00.000Z'])
+  })
+
   it('only returns runs strictly after the start time', () => {
     expect(iso(nextRuns('0 3 * * *', new Date('2026-09-11T03:00:00Z'), 1))).toEqual(['2026-09-12T03:00:00.000Z'])
     expect(iso(nextRuns('0 3 * * *', new Date('2026-09-11T02:59:30Z'), 1))).toEqual(['2026-09-11T03:00:00.000Z'])
@@ -70,8 +74,22 @@ describe('nextRuns', () => {
     expect(iso(nextRuns('0 9 * * *', friday, 1, 'America/New_York'))).toEqual(['2026-09-11T13:00:00.000Z'])
   })
 
-  it('skips a local time that does not exist on a daylight-saving change', () => {
-    expect(iso(nextRuns('30 2 * * *', new Date('2027-03-13T12:00:00Z'), 1, 'America/New_York'))).toEqual(['2027-03-15T06:30:00.000Z'])
+  it('advances a local time that daylight saving skips to the next valid time', () => {
+    // 02:30 does not exist on 14 March 2027 in New York, so the run moves to 03:00.
+    expect(iso(nextRuns('30 2 * * *', new Date('2027-03-13T12:00:00Z'), 1, 'America/New_York'))).toEqual(['2027-03-14T07:00:00.000Z'])
+  })
+
+  it('does not repeat a run when an advanced time is already scheduled', () => {
+    expect(iso(nextRuns('0 2,3 * * *', new Date('2027-03-14T00:00:00Z'), 2, 'America/New_York'))).toEqual([
+      '2027-03-14T07:00:00.000Z',
+      '2027-03-15T06:00:00.000Z',
+    ])
+  })
+
+  it('uses the first occurrence of a repeated hour, and the new offset after it', () => {
+    // Clocks go back on 1 November 2026 in New York, so 01:30 happens twice.
+    expect(iso(nextRuns('30 1 * * *', new Date('2026-11-01T00:00:00Z'), 1, 'America/New_York'))).toEqual(['2026-11-01T05:30:00.000Z'])
+    expect(iso(nextRuns('0 3 * * *', new Date('2026-11-01T00:00:00Z'), 1, 'America/New_York'))).toEqual(['2026-11-01T08:00:00.000Z'])
   })
 
   it('runs on either day field when both are restricted', () => {
