@@ -35,3 +35,20 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
 }
+
+/* Focus is always visible, in one style across the app. */
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+/* Motion explains state changes; it is never required to understand the page. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
