@@ -23,6 +23,9 @@ export function AppShell() {
             Pipeline Lab
           </NavLink>
           <nav className="flex gap-4 text-sm">
+            <NavLink to="/playground" className={linkStyle}>
+              Playground
+            </NavLink>
             <NavLink to="/progress" className={linkStyle}>
               Progress
             </NavLink>
