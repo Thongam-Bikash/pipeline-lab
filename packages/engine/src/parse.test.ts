@@ -53,6 +53,11 @@ jobs:
     ['an unclosed quote', 'on: push\njobs:\n  build:\n    runs-on: "ubuntu\n', { line: 5, message: 'A quoted value is never closed.' }],
     ['a broken expression', `on: push\njobs:\n  a:\n    if: \${{ github.ref == }}\n    runs-on: x\n${steps}`, { line: 4, message: "Unexpected end of expression: '=='" }],
     [
+      'a needs that names a missing job',
+      'on: push\njobs:\n  build:\n    runs-on: x\n    steps: [{run: echo}]\n  deploy:\n    needs: missing\n    runs-on: x\n    steps: [{run: echo}]\n',
+      { message: "Job 'deploy' depends on unknown job 'missing'." },
+    ],
+    [
       'jobs that all wait on each other',
       'on: push\njobs:\n  a:\n    needs: b\n    runs-on: x\n    steps: [{run: echo}]\n  b:\n    needs: a\n    runs-on: x\n    steps: [{run: echo}]\n',
       { line: 3, message: 'Every job waits on another job, so nothing can start.' },

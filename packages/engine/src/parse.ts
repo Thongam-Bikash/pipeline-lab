@@ -120,5 +120,6 @@ export async function loadWorkflow(source: string): Promise<ParseResult> {
   const errors = explained.filter((d, i) => explained.findIndex((other) => other.line === d.line) === i)
   const checks = errors.length ? [] : [...checkSchedules(value!), ...findUnsupported(value!)]
   const diagnostics = [...traps, ...errors, ...checks]
-  return { workflow: diagnostics.some((d) => d.severity === 'error') ? undefined : template, diagnostics }
+  if (diagnostics.some((d) => d.severity === 'error')) return { diagnostics }
+  return { workflow: template, source: value, diagnostics }
 }

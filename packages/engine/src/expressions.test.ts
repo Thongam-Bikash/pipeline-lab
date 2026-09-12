@@ -47,8 +47,8 @@ describe('evaluate', () => {
   })
 
   it('resolves status functions from the run status', () => {
-    const failed = { failed: true, cancelled: false }
-    const cancelled = { failed: false, cancelled: true }
+    const failed = { success: false, failed: true, cancelled: false }
+    const cancelled = { success: false, failed: false, cancelled: true }
     expect(evaluate('success()')).toBe(true)
     expect(evaluate('success()', {}, failed)).toBe(false)
     expect(evaluate('failure()', {}, failed)).toBe(true)
@@ -103,7 +103,7 @@ describe('evaluateIf', () => {
 
   it('combines status functions with other checks', () => {
     expect(evaluateIf("success() && env.STAGE == 'prod'", contexts)).toBe(true)
-    expect(evaluateIf("success() && env.STAGE == 'prod'", contexts, { failed: true, cancelled: false })).toBe(false)
-    expect(evaluateIf('always()', contexts, { failed: true, cancelled: false })).toBe(true)
+    expect(evaluateIf("success() && env.STAGE == 'prod'", contexts, { success: false, failed: true, cancelled: false })).toBe(false)
+    expect(evaluateIf('always()', contexts, { success: false, failed: true, cancelled: false })).toBe(true)
   })
 })

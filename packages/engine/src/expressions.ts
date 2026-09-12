@@ -3,12 +3,13 @@ import type { Contexts, Json } from './types'
 
 type FunctionDefinition = (typeof wellKnownFunctions)[string]
 
-export type RunStatus = { failed: boolean; cancelled: boolean }
+// success() is not simply "not failed": a job whose dependency was skipped is not a success either.
+export type RunStatus = { success: boolean; failed: boolean; cancelled: boolean }
 
 // Every context a workflow may name, so an expression referring to an unused one still evaluates.
 const CONTEXT_NAMES = ['github', 'env', 'vars', 'secrets', 'inputs', 'needs', 'matrix', 'steps', 'job', 'runner', 'strategy']
 
-const OK: RunStatus = { failed: false, cancelled: false }
+const OK: RunStatus = { success: true, failed: false, cancelled: false }
 
 // ponytail: stands in for a real file hash, stable per pattern so cache keys behave
 function fakeHash(input: string): string {
@@ -55,8 +56,8 @@ function functionsFor(status: RunStatus): Map<string, FunctionDefinition> {
     call: (...args) => new data.StringData(fakeHash(args.map((arg) => arg.coerceString()).join('|'))),
   }
   const functions = new Map<string, FunctionDefinition>([
-    check('success', () => !status.failed && !status.cancelled),
-    check('failure', () => status.failed && !status.cancelled),
+    check('success', () => status.success),
+    check('failure', () => status.failed),
     check('always', () => true),
     check('cancelled', () => status.cancelled),
     ['hashfiles', hashFiles],
