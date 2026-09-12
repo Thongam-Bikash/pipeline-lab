@@ -5,6 +5,10 @@ export type TemplateToken = Parameters<typeof isMapping>[0]
 
 export type EventsConfig = WorkflowTemplate['events']
 
+export type Json = string | number | boolean | null | Json[] | { [key: string]: Json }
+
+export type Contexts = Record<string, Json>
+
 export type Severity = 'error' | 'warning' | 'not-simulated'
 
 export type Diagnostic = {
