@@ -1,0 +1,19 @@
+# Its own project name, so every command here touches only Pipeline Lab's containers.
+name: pipeline-lab
+
+services:
+  web:
+    image: ghcr.io/thongam-bikash/pipeline-lab-web:${IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    # Published ports bypass ufw, so bind to localhost and let the host's Nginx reach it.
+    ports:
+      - "127.0.0.1:8080:80"
+    restart: unless-stopped
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
