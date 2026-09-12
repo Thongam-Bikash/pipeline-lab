@@ -4,11 +4,11 @@ import { clock } from './LogViewer'
 import { StatusIcon } from './StatusIcon'
 import type { Speed } from './useRun'
 
+// Starting a run belongs to the event panel; this bar only controls playback.
 type Props = {
   run: RunState | null
   playing: boolean
   speed: Speed
-  onRun: () => void
   onPlayPause: () => void
   onStep: () => void
   onSpeed: (speed: Speed) => void
@@ -17,15 +17,11 @@ type Props = {
 const SPEEDS: Speed[] = [1, 4, 'instant']
 const speedLabel = (speed: Speed) => (speed === 'instant' ? 'Instant' : `${speed}x`)
 
-export function PlaybackBar({ run, playing, speed, onRun, onPlayPause, onStep, onSpeed }: Props) {
+export function PlaybackBar({ run, playing, speed, onPlayPause, onStep, onSpeed }: Props) {
   const finished = run?.status === 'completed'
 
   return (
     <div className="flex flex-wrap items-center gap-3 border-b border-rule pb-3">
-      <Button variant="primary" onClick={onRun}>
-        Run workflow
-      </Button>
-
       {run ? (
         <>
           <StatusIcon status={run.status} conclusion={run.conclusion} />

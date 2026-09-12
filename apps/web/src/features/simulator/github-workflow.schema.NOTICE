@@ -1,0 +1,9 @@
+github-workflow.schema.json is a copy of SchemaStore's github-workflow.json,
+used to give the editor completions and hover text for workflow files.
+
+Source:   https://json.schemastore.org/github-workflow.json
+Fetched:  2026-09-12
+Licence:  Apache-2.0 (SchemaStore/schemastore)
+
+Refresh it by downloading that URL again; the simulator's own validation comes
+from GitHub's workflow parser, not from this schema.

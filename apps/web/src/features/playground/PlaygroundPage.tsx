@@ -1,13 +1,15 @@
-import { loadWorkflow, type ParseResult } from '@pipeline-lab/engine'
-import { useEffect, useState } from 'react'
+import { loadWorkflow, matchEvent, type ParseResult, type SimEvent } from '@pipeline-lab/engine'
+import { useEffect, useRef, useState } from 'react'
+import { EventPanel } from '@/features/simulator/EventPanel'
 import { LogViewer } from '@/features/simulator/LogViewer'
 import { PipelineGraph } from '@/features/simulator/PipelineGraph'
 import { PlaybackBar } from '@/features/simulator/PlaybackBar'
 import { RunHistory } from '@/features/simulator/RunHistory'
+import { SimNotice } from '@/features/simulator/SimNotice'
+import { WorkflowEditor, type EditorApi } from '@/features/simulator/WorkflowEditor'
 import { useRun } from '@/features/simulator/useRun'
 
-// A fixture until the editor arrives, so the run view has something real to show.
-const FIXTURE = `name: CI
+const TEMPLATE = `name: CI
 on:
   push:
     branches: [main]
@@ -47,49 +49,64 @@ jobs:
 `
 
 export function PlaygroundPage() {
+  const [source, setSource] = useState(TEMPLATE)
   const [parsed, setParsed] = useState<ParseResult>()
+  const [event, setEvent] = useState<SimEvent>({ type: 'push', branch: 'main', files: ['src/app.ts'] })
   const [selected, setSelected] = useState<string>()
+  const editor = useRef<EditorApi | undefined>(undefined)
   const { run, runs, current, playing, speed, start, step, changeSpeed, setCurrent, togglePlaying } = useRun({ seed: 3 })
 
+  // Re-parse shortly after typing stops, so every keystroke does not run the parser.
   useEffect(() => {
-    void loadWorkflow(FIXTURE).then(setParsed)
-  }, [])
+    const timer = setTimeout(() => void loadWorkflow(source).then(setParsed), 250)
+    return () => clearTimeout(timer)
+  }, [source])
 
-  const notices = parsed?.diagnostics ?? []
+  const errors = parsed?.diagnostics.filter((diagnostic) => diagnostic.severity === 'error') ?? []
+  const match = parsed?.workflow ? matchEvent(parsed.workflow.events, event) : undefined
+  const startRun = () => parsed && match?.runs && start(parsed, event)
+
+  // Space and full stop drive playback, unless the focus is somewhere that takes typing.
+  useEffect(() => {
+    const onKeyDown = (keyEvent: KeyboardEvent) => {
+      const target = keyEvent.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, .monaco-editor')) return
+      if (keyEvent.key === ' ') {
+        keyEvent.preventDefault()
+        togglePlaying()
+      }
+      if (keyEvent.key === '.') step()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [togglePlaying, step])
+
   const job = run?.jobs.find((candidate) => candidate.key === selected) ?? run?.jobs[0]
 
   return (
     <div>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-3xl font-bold">Playground</h1>
-        <p className="text-sm text-muted">This simulates a documented subset of GitHub Actions. Anything it does not model is listed, never ignored.</p>
+        <p className="text-xs text-muted">Ctrl+Enter runs the workflow. Space pauses, full stop steps. Ctrl+M moves focus out of the editor.</p>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+      <div className="mt-6 grid gap-8 lg:grid-cols-2">
         <section>
-          <h2 className="text-sm font-semibold">.github/workflows/ci.yml</h2>
-          <pre className="mt-2 max-h-[28rem] overflow-auto rounded-base border border-rule bg-surface p-3 font-mono text-xs">{FIXTURE}</pre>
-          {notices.length === 0 ? null : (
-            <ul className="mt-3 space-y-1 text-xs text-muted">
-              {notices.map((notice, index) => (
-                <li key={index}>
-                  Line {notice.line}: {notice.message}
-                </li>
-              ))}
-            </ul>
-          )}
+          <h2 className="font-mono text-sm">.github/workflows/ci.yml</h2>
+          <div className="mt-2">
+            <WorkflowEditor value={source} onChange={setSource} onRun={startRun} onReady={(api) => (editor.current = api)} />
+          </div>
+          <SimNotice diagnostics={parsed?.diagnostics ?? []} onGoToLine={(line) => editor.current?.goToLine(line)} />
         </section>
 
         <section>
-          <PlaybackBar
-            run={run}
-            playing={playing}
-            speed={speed}
-            onRun={() => parsed && start(parsed, { type: 'push', branch: 'main' })}
-            onPlayPause={togglePlaying}
-            onStep={step}
-            onSpeed={changeSpeed}
-          />
+          <EventPanel event={event} onChange={setEvent} onRun={startRun} disabled={errors.length > 0 || match?.runs === false} />
+
+          {match ? <p className={`mt-2 text-xs ${match.runs ? 'text-muted' : 'text-caution'}`}>{match.reason}</p> : null}
+
+          <div className="mt-4">
+            <PlaybackBar run={run} playing={playing} speed={speed} onPlayPause={togglePlaying} onStep={step} onSpeed={changeSpeed} />
+          </div>
 
           {run ? (
             <>
@@ -97,7 +114,7 @@ export function PlaygroundPage() {
                 <PipelineGraph jobs={run.jobs} selected={job?.key} onSelect={setSelected} />
               </div>
               <div className="mt-8">
-                <LogViewer job={job} />
+                <LogViewer job={job} onGoToLine={(line) => editor.current?.goToLine(line)} />
               </div>
               <div className="mt-8">
                 <RunHistory runs={runs} current={current} onSelect={setCurrent} />
