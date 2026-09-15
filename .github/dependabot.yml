@@ -16,6 +16,14 @@ updates:
       - dependency-name: node
         update-types: ["version-update:semver-major"]
 
+  - package-ecosystem: docker
+    directory: "/apps/api"
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: npm
     directory: "/"
     schedule:

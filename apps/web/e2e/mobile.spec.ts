@@ -9,7 +9,9 @@ async function expectNoSidewaysScroll(page: Page) {
 }
 
 test('every page fits a phone screen', async ({ page }) => {
-  for (const path of ['/', '/modules', '/modules/anatomy', '/modules/anatomy/yaml-traps', '/progress']) {
+  const pages = ['/', '/modules', '/modules/anatomy', '/modules/anatomy/yaml-traps', '/progress', '/playground']
+  const accountPages = ['/sign-in', '/sign-up', '/forgot-password', '/reset-password', '/account', '/privacy']
+  for (const path of [...pages, ...accountPages]) {
     await page.goto(path)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
     await expectNoSidewaysScroll(page)

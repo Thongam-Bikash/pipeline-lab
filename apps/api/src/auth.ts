@@ -45,6 +45,8 @@ export const auth = betterAuth({
   user: { deleteUser: { enabled: true } },
   // On by default when NODE_ENV is production, which is how the API image runs.
   rateLimit: {
+    // Only the end-to-end test stack turns this off: it signs up far more often than any person would.
+    ...(process.env.RATE_LIMIT === 'off' ? { enabled: false } : {}),
     customRules: {
       '/sign-in/email': { window: 60, max: 5 },
       '/sign-up/email': { window: 3600, max: 5 },

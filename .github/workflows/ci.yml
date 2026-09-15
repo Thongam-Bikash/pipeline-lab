@@ -21,11 +21,29 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  IMAGE: ghcr.io/thongam-bikash/pipeline-lab-web
+  IMAGE_BASE: ghcr.io/thongam-bikash/pipeline-lab
 
 jobs:
   check:
     runs-on: ubuntu-24.04
+    services:
+      # The API's route tests run against a real Postgres, the way Module 8 teaches.
+      postgres:
+        image: postgres:18.6-alpine3.24@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+        env:
+          POSTGRES_USER: pipeline_lab
+          POSTGRES_PASSWORD: pipeline_lab
+          POSTGRES_DB: pipeline_lab
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pipeline_lab -d pipeline_lab"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      # A throwaway database on a throwaway runner, so a literal password is not a secret here.
+      DATABASE_URL: postgres://pipeline_lab:pipeline_lab@localhost:5432/pipeline_lab
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -35,6 +53,9 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      # The same migration code the migrate container runs before the API starts.
+      - name: Apply the database migrations
+        run: npm run build -w @pipeline-lab/api && npm run db:migrate -w @pipeline-lab/api
       - run: npm test
 
   e2e:
@@ -47,6 +68,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      - name: Start the API, database and mail catcher
+        # Generated for this run only; the stack lives and dies with the runner.
+        # RATE_LIMIT=off because the tests sign up far more often than any person would.
+        run: |
+          printf 'POSTGRES_PASSWORD=%s\nBETTER_AUTH_SECRET=%s\nRATE_LIMIT=off\n' "$(openssl rand -hex 16)" "$(openssl rand -hex 32)" > infra/.env
+          docker compose -f infra/compose.yml --profile dev up -d --build --wait api mailpit
       - run: npm run test:e2e
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -57,6 +84,9 @@ jobs:
             apps/web/playwright-report
             apps/web/test-results
           retention-days: 7
+      - name: Show the API log
+        if: failure()
+        run: docker compose -f infra/compose.yml --profile dev logs --no-color migrate api
 
   image:
     needs: [check, e2e]
@@ -66,6 +96,9 @@ jobs:
       contents: read
       # Only this job may write to the registry.
       packages: write
+    strategy:
+      matrix:
+        app: [web, api]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Log in to the registry
@@ -74,12 +107,14 @@ jobs:
           USERNAME: ${{ github.actor }}
         run: echo "$TOKEN" | docker login ghcr.io -u "$USERNAME" --password-stdin
       - name: Build and push the image
+        # The matrix value goes through env like any other input, never straight into the script.
         env:
           SHA: ${{ github.sha }}
+          APP: ${{ matrix.app }}
         run: |
-          docker build -f apps/web/Dockerfile -t "$IMAGE:$SHA" -t "$IMAGE:latest" .
-          docker push "$IMAGE:$SHA"
-          docker push "$IMAGE:latest"
+          docker build -f "apps/$APP/Dockerfile" -t "$IMAGE_BASE-$APP:$SHA" -t "$IMAGE_BASE-$APP:latest" .
+          docker push "$IMAGE_BASE-$APP:$SHA"
+          docker push "$IMAGE_BASE-$APP:latest"
 
   deploy:
     needs: [check, e2e, image]
@@ -118,7 +153,10 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_ed25519 "$USER@$HOST" 'mkdir -p ~/pipeline-lab'
           scp -i ~/.ssh/id_ed25519 infra/compose.yml "$USER@$HOST:~/pipeline-lab/compose.yml"
-      - name: Pull and start the new image
+          # The .env file is created by hand on the server and never travels with a deploy.
+          ssh -i ~/.ssh/id_ed25519 "$USER@$HOST" 'test -f ~/pipeline-lab/.env' \
+            || { echo "::error::~/pipeline-lab/.env is missing on the server"; exit 1; }
+      - name: Pull and start the new images
         env:
           HOST: ${{ secrets.DEPLOY_HOST }}
           USER: ${{ secrets.DEPLOY_USER }}
@@ -126,15 +164,19 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_ed25519 "$USER@$HOST" \
             "cd ~/pipeline-lab && IMAGE_TAG=$TAG docker compose pull && IMAGE_TAG=$TAG docker compose up -d"
-      - name: Check the site answers
+      - name: Check the site and the API answer
         env:
           SITE_URL: ${{ vars.SITE_URL }}
-        run: curl -fsS --retry 10 --retry-delay 3 --retry-all-errors -o /dev/null -w 'status %{http_code}\n' "$SITE_URL"
+        run: |
+          curl -fsS --retry 10 --retry-delay 3 --retry-all-errors -o /dev/null -w 'site %{http_code}\n' "$SITE_URL"
+          curl -fsS --retry 10 --retry-delay 3 --retry-all-errors -o /dev/null -w 'api %{http_code}\n' "${SITE_URL%/}/api/health"
       - name: Keep only the last few images
         env:
           HOST: ${{ secrets.DEPLOY_HOST }}
           USER: ${{ secrets.DEPLOY_USER }}
         # Ours only: a global prune would delete images belonging to the droplet's other services.
         run: |
-          ssh -i ~/.ssh/id_ed25519 "$USER@$HOST" \
-            "docker image ls '$IMAGE' --format '{{.ID}} {{.CreatedAt}}' | sort -k2 -r | tail -n +4 | cut -d' ' -f1 | xargs -r docker rmi -f" || true
+          for app in web api; do
+            ssh -i ~/.ssh/id_ed25519 "$USER@$HOST" \
+              "docker image ls '$IMAGE_BASE-$app' --format '{{.ID}} {{.CreatedAt}}' | sort -k2 -r | tail -n +4 | cut -d' ' -f1 | xargs -r docker rmi -f" || true
+          done
