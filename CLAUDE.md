@@ -43,7 +43,9 @@ The full specification lives in `docs/PROJECT_BRIEF.md`. Read it before starting
 
 ## Phase status
 
-- [ ] Phase 1 — Foundation, simulator core, modules 0–4, first scenarios, Docker deploy to the droplet
+- [x] Phase 1 — Foundation, simulator core, modules 0–4, first scenarios, Docker packaging. The
+      deploy job is written and skips until `SITE_URL` is set: there is no server or domain yet,
+      so nothing has been deployed and the rollback drill is still untried.
 - [ ] Phase 2 — Accounts and sync: API, Postgres, email and Google sign-in, R2 backups, AWS deploy doc
 - [ ] Phase 3 — Runners, project types, frontend and backend pipelines (modules 5–8)
 - [ ] Phase 4 — Frontend/backend alignment and companion repos (module 9)
