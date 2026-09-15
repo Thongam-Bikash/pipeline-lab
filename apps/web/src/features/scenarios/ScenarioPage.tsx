@@ -72,7 +72,8 @@ export function ScenarioPage() {
       <h1 className="mt-1 text-3xl font-bold">{scenario.title}</h1>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-2">
-        <section>
+        {/* min-w-0 lets the graph scroll inside its own box; a grid item will not shrink below its content otherwise. */}
+        <section className="min-w-0">
           <div className="max-w-[68ch] space-y-3">
             {scenario.story.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
@@ -113,7 +114,7 @@ export function ScenarioPage() {
           ) : null}
         </section>
 
-        <section>
+        <section className="min-w-0">
           <h2 className="font-mono text-sm">{scenario.file}</h2>
           <div className="mt-2">
             <WorkflowEditor value={source} onChange={setSource} onRun={() => parsed && start(parsed, scenario.event)} onReady={(api) => (editor.current = api)} />

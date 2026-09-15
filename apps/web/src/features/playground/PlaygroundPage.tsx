@@ -70,7 +70,8 @@ export function PlaygroundPage() {
   useEffect(() => {
     const onKeyDown = (keyEvent: KeyboardEvent) => {
       const target = keyEvent.target as HTMLElement | null
-      if (target?.closest('input, textarea, select, .monaco-editor')) return
+      // The focused control comes first: space types, and space activates a button.
+      if (target?.closest('input, textarea, select, button, a, summary, [contenteditable], .monaco-editor')) return
       if (keyEvent.key === ' ') {
         keyEvent.preventDefault()
         togglePlaying()
@@ -91,7 +92,8 @@ export function PlaygroundPage() {
       </div>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-2">
-        <section>
+        {/* min-w-0 lets the graph scroll inside its own box; a grid item will not shrink below its content otherwise. */}
+        <section className="min-w-0">
           <h2 className="font-mono text-sm">.github/workflows/ci.yml</h2>
           <div className="mt-2">
             <WorkflowEditor value={source} onChange={setSource} onRun={startRun} onReady={(api) => (editor.current = api)} />
@@ -99,7 +101,7 @@ export function PlaygroundPage() {
           <SimNotice diagnostics={parsed?.diagnostics ?? []} onGoToLine={(line) => editor.current?.goToLine(line)} />
         </section>
 
-        <section>
+        <section className="min-w-0">
           {/* Disabled until the workflow has been parsed, so an enabled button really can run. */}
           <EventPanel event={event} onChange={setEvent} onRun={startRun} disabled={!parsed || errors.length > 0 || match?.runs === false} />
 
