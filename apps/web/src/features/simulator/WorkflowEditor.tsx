@@ -67,6 +67,12 @@ export function WorkflowEditor({ value, onChange, onRun, onReady }: Props) {
           tabSize: 2,
           renderLineHighlight: 'line',
           padding: { top: 8, bottom: 8 },
+          // In YAML the indentation is the meaning, and lessons expect you to paste whole
+          // workflows in. Automatic indenting and closing quotes would corrupt what you paste.
+          autoIndent: 'none',
+          autoClosingQuotes: 'never',
+          autoClosingBrackets: 'never',
+          formatOnPaste: false,
         }}
       />
     </div>

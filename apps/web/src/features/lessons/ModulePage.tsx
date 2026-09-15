@@ -2,6 +2,7 @@ import type { MDXContent } from 'mdx/types'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { findModule } from '@/content/modules'
+import { scenariosForModule } from '@/content/scenarios'
 import { useProgress } from '@/features/progress/store'
 import { mdxComponents } from './mdxComponents'
 
@@ -9,6 +10,7 @@ export function ModulePage() {
   const { moduleSlug = '' } = useParams()
   const module = findModule(moduleSlug)
   const lessons = useProgress((state) => state.lessons)
+  const scenarios = useProgress((state) => state.scenarios)
   const [Recap, setRecap] = useState<MDXContent | null>(null)
 
   useEffect(() => {
@@ -49,6 +51,22 @@ export function ModulePage() {
           </li>
         ))}
       </ol>
+
+      {scenariosForModule(module.slug).length > 0 ? (
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">Scenario</h2>
+          <ul className="mt-2 space-y-1">
+            {scenariosForModule(module.slug).map((scenario) => (
+              <li key={scenario.id}>
+                <Link to={`/scenarios/${scenario.id}`} className="text-signal underline underline-offset-4">
+                  {scenario.title}
+                </Link>
+                <span className="ml-2 text-xs text-muted">{scenarios[scenario.id] ? 'Passed' : 'Not passed yet'}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {Recap ? (
         <section className="mt-10">

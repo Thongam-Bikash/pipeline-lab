@@ -15,5 +15,9 @@ export default defineConfig({
       'monaco-editor/esm/vs/editor/editor.worker.js': new URL('../../node_modules/monaco-editor/esm/vs/editor/editor.worker.js', import.meta.url).pathname,
     },
   },
-  test: { include: ['src/**/*.test.{ts,tsx}'] },
+  test: {
+    include: ['src/**/*.test.{ts,tsx}'],
+    // The workflow parser imports its JSON schema without an import attribute, which plain Node rejects.
+    server: { deps: { inline: ['@actions/workflow-parser', '@actions/expressions'] } },
+  },
 })

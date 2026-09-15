@@ -4,6 +4,7 @@ import { ModulePage } from '@/features/lessons/ModulePage'
 import { ModulesPage } from '@/features/lessons/ModulesPage'
 import { PlaygroundPage } from '@/features/playground/PlaygroundPage'
 import { ProgressPage } from '@/features/progress/ProgressPage'
+import { ScenarioPage } from '@/features/scenarios/ScenarioPage'
 import { AppShell } from './AppShell'
 import { HomePage } from './HomePage'
 import { NotFoundPage } from './NotFoundPage'
@@ -18,6 +19,7 @@ export function App() {
           <Route path="modules/:moduleSlug" element={<ModulePage />} />
           <Route path="modules/:moduleSlug/:lessonSlug" element={<LessonPage />} />
           <Route path="playground" element={<PlaygroundPage />} />
+          <Route path="scenarios/:scenarioId" element={<ScenarioPage />} />
           <Route path="progress" element={<ProgressPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
