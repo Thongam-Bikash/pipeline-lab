@@ -16,9 +16,11 @@
     "better-auth": "^1.7.5",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.13.7",
+    "nodemailer": "^10.0.10",
     "pg": "^8.23.0"
   },
   "devDependencies": {
+    "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.23.1",
     "auth": "^1.7.5",
     "drizzle-kit": "^0.31.10"

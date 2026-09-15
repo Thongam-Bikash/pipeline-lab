@@ -1,6 +1,10 @@
 import { Hono } from 'hono'
+import { auth } from './auth.js'
 
 export const app = new Hono()
+
+// Sign up, sign in, verification, reset, Google and account deletion all live here.
+app.all('/api/auth/*', (c) => auth.handler(c.req.raw))
 
 // The web container's healthcheck and Playwright's readiness probe both poll this.
 app.get('/api/health', (c) => c.json({ ok: true }))

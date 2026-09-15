@@ -46,6 +46,13 @@ services:
     mem_limit: 256m
     environment:
       DATABASE_URL: *database-url
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in infra/.env}
+      # Links in emails and the Google callback are built from this.
+      BETTER_AUTH_URL: ${PUBLIC_URL:-http://localhost:8080}
+      # The Vite dev and preview servers send their own Origin through the proxy.
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:5173,http://localhost:4173}
+      SMTP_URL: ${SMTP_URL:-smtp://mailpit:1025}
+      MAIL_FROM: ${MAIL_FROM:-Pipeline Lab <no-reply@pipeline-lab.local>}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     depends_on:
