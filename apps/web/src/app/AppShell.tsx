@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router'
+import { authClient } from '@/features/account/client'
 import { useSettings, type Theme } from './settings'
 
 const THEMES: Theme[] = ['auto', 'light', 'dark']
@@ -10,6 +11,7 @@ const linkStyle = ({ isActive }: { isActive: boolean }) =>
 export function AppShell() {
   const theme = useSettings((state) => state.theme)
   const setTheme = useSettings((state) => state.setTheme)
+  const { data: session, isPending } = authClient.useSession()
 
   return (
     <>
@@ -33,20 +35,28 @@ export function AppShell() {
               Progress
             </NavLink>
           </nav>
-          <label className="ml-auto flex items-center gap-2 text-sm text-muted">
-            Theme
-            <select
-              value={theme}
-              onChange={(event) => setTheme(event.target.value as Theme)}
-              className="rounded-base border border-rule bg-surface px-2 py-1 text-ink"
-            >
-              {THEMES.map((option) => (
-                <option key={option} value={option}>
-                  {label(option)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="ml-auto flex items-center gap-4 text-sm">
+            <label className="flex items-center gap-2 text-muted">
+              Theme
+              <select
+                value={theme}
+                onChange={(event) => setTheme(event.target.value as Theme)}
+                className="rounded-base border border-rule bg-surface px-2 py-1 text-ink"
+              >
+                {THEMES.map((option) => (
+                  <option key={option} value={option}>
+                    {label(option)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {/* Nothing until the session is known, so a signed-in learner never sees "Sign in" flash. */}
+            {isPending ? null : (
+              <NavLink to={session ? '/account' : '/sign-in'} className={linkStyle}>
+                {session ? 'Account' : 'Sign in'}
+              </NavLink>
+            )}
+          </div>
         </div>
       </header>
 
