@@ -11,7 +11,8 @@ export function ForgotPasswordPage() {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     setPending(true)
-    const result = await authClient.requestPasswordReset({ email: String(form.get('email')), redirectTo: '/reset-password' })
+    // On this page's own origin: a relative path would be resolved against the API's base URL, a different origin in dev and preview.
+    const result = await authClient.requestPasswordReset({ email: String(form.get('email')), redirectTo: `${window.location.origin}/reset-password` })
     setPending(false)
     // The same answer whether or not the address has an account, so this form cannot be used to find out.
     setMessage(

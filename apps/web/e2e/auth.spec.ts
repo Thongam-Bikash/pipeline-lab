@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { mailLink, newEmail, PASSWORD, signIn, signUp, verifiedAccount } from './account'
+import { BASE, mailLink, newEmail, PASSWORD, signIn, signUp, verifiedAccount } from './account'
 
 test('signs up, confirms the address by email, and signs out', async ({ page, request }) => {
   const email = newEmail()
@@ -12,6 +12,8 @@ test('signs up, confirms the address by email, and signs out', async ({ page, re
   await expect(page.getByRole('heading', { name: 'Check your inbox' })).toBeVisible()
 
   await page.goto(await mailLink(request, email, 'verify-email'))
+  // Emailed links must land back on the origin under test, not on whatever else answers at the API's base URL.
+  await expect(page).toHaveURL(`${BASE}/account?verified=1`)
   await expect(page.getByText('Your email address is confirmed.')).toBeVisible()
   await expect(page.getByText(email)).toBeVisible()
   await expect(banner.getByRole('link', { name: 'Account', exact: true })).toBeVisible()
@@ -52,6 +54,8 @@ test('resets a forgotten password by email', async ({ page, request }) => {
   await expect(page.getByRole('status')).toContainText('If an account uses that address')
 
   await page.goto(await mailLink(request, email, 'reset-password'))
+  // This once passed locally only because another server was listening at the API's base URL.
+  await expect(page).toHaveURL(new RegExp(`^${BASE}/reset-password\\?token=`))
   await page.getByLabel('New password').fill(newPassword)
   await page.getByRole('button', { name: 'Save new password' }).click()
   await expect(page.getByRole('heading', { name: 'Password changed' })).toBeVisible()
