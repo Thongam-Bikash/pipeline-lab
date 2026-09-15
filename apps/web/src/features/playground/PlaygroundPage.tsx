@@ -100,7 +100,8 @@ export function PlaygroundPage() {
         </section>
 
         <section>
-          <EventPanel event={event} onChange={setEvent} onRun={startRun} disabled={errors.length > 0 || match?.runs === false} />
+          {/* Disabled until the workflow has been parsed, so an enabled button really can run. */}
+          <EventPanel event={event} onChange={setEvent} onRun={startRun} disabled={!parsed || errors.length > 0 || match?.runs === false} />
 
           {match ? <p className={`mt-2 text-xs ${match.runs ? 'text-muted' : 'text-caution'}`}>{match.reason}</p> : null}
 
