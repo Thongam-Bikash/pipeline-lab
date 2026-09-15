@@ -1,0 +1,27 @@
+A repository holds your project's files and their whole history. Everything else in this course
+happens inside one.
+
+## Branches keep work apart
+
+A **branch** is a line of work inside a single repository. The default branch, usually `main`, is
+the one people treat as the current state of the project. When you start a change, you make a branch
+from `main`, commit to it, and leave `main` alone until the work is ready.
+
+That separation is what makes automation useful later: a pipeline can check your branch before
+anyone merges it, so problems are found while they are still cheap to fix.
+
+## Commits are the unit of change
+
+A **commit** records a set of changes with a message explaining why. A branch is really just a
+pointer at the newest commit in a line of them.
+
+Two habits pay off once CI is watching:
+
+- Commit often enough that a failure points at a small change.
+- Write messages that say why, because the person reading them at 3am may be you.
+
+## What this means for CI
+
+A pipeline runs against a specific commit on a specific branch. When a run fails, the first two
+questions are always which commit and which branch. Keeping branches short-lived and commits small
+makes both answers useful.

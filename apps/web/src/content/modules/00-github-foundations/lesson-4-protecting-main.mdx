@@ -1,0 +1,41 @@
+Automated checks only protect a branch if merging without them is impossible. On GitHub you express
+that with a **ruleset**: a named list of rules that applies to branches or tags you choose.
+
+## The rules that matter for CI
+
+A few rules do most of the work on a default branch:
+
+- **Require a pull request before merging** — every change arrives as a pull request. It does not
+  have to be approved to satisfy this rule on its own, but it must be opened. You can also require a
+  number of approving reviews, dismiss stale approvals when new commits land, and require review
+  from code owners.
+- **Require status checks to pass before merging** — the check your pipeline reports must be green
+  before the merge button works. This is the rule that makes CI binding rather than advisory.
+- **Block force pushes** — stops someone rewriting history other people have built on. Enabled by
+  default.
+- **Restrict deletions** — only people you allow can delete the branch. Also on by default.
+
+## Strict or loose status checks
+
+When you require status checks, one choice changes how often builds run:
+
+- **Strict** means the branch must be up to date with the base branch before merging. This is the
+  default. It costs more builds, because merging someone else's work means bringing yours up to
+  date and running again.
+- **Loose** means the branch need not be up to date. Fewer builds, but a check that passed against an
+  older base can still break `main` after merging.
+
+Neither is wrong. Strict buys certainty with runner minutes; loose buys speed and accepts a small
+risk.
+
+## Rulesets and branch protection rules
+
+Older repositories use branch protection rules. Both can apply at once, and all applicable rules are
+enforced. Rulesets are the more flexible option: several can target the same branch, anyone with read
+access can see which rules apply, and you can turn a ruleset off without deleting it.
+
+## The habit to take away
+
+Deciding what a check means is a design decision. "Tests must pass" is a promise you are making to
+everyone who merges after you, so make the check fast and trustworthy enough that people do not want
+to bypass it.

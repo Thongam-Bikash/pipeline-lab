@@ -1,0 +1,70 @@
+import { AnnotatedYaml } from '@/features/lessons/AnnotatedYaml'
+
+YAML is mostly indentation and colons, and the few places it surprises people are worth meeting
+deliberately rather than at 2am.
+
+## Indentation is structure, and tabs are not allowed
+
+Nesting is expressed with spaces. A tab character is a syntax error, not a wide space, and editors
+that insert tabs cause a parse failure with a message about indentation. Two spaces per level is the
+convention.
+
+The other indentation trap is a list item that drifts:
+
+<AnnotatedYaml
+  file="broken.yml"
+  yaml={`jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+    - run: echo one
+  - run: echo two
+`}
+  notes={[{ line: 5, text: 'This dash sits at a different depth from the one above, so it is no longer part of steps.' }]}
+/>
+
+## Numbers that are not what you typed
+
+`3.10` is a number, and the number is 3.1. Version strings lose their trailing zero this way, so a
+Python setup asking for `3.10` can quietly request 3.1.
+
+Quote anything that is a version, an identifier, or a value whose exact characters matter:
+
+<AnnotatedYaml
+  file="versions.yml"
+  yaml={`with:
+  python-version: '3.10'
+  node-version: '22.11'
+`}
+  notes={[{ line: 2, text: "Quoted, so it stays the text 3.10 rather than becoming the number 3.1." }]}
+/>
+
+The simulator warns you about this one, because it is silent otherwise.
+
+## Words that become booleans
+
+In older YAML, bare `yes`, `no`, `on`, and `off` are booleans. GitHub's parser reads workflow keys as
+text, so `on:` works as you expect. Other tools that read your file, such as linters, may not agree,
+which is why you will see `"on":` written with quotes in some projects.
+
+If a key of yours really has to be one of those words, quote it.
+
+## Two ways to write the same thing
+
+Both of these mean the same list:
+
+<AnnotatedYaml
+  file="styles.yml"
+  yaml={`branches:
+  - main
+  - releases/**
+
+branches: [main, 'releases/**']
+`}
+  notes={[
+    { line: 1, text: 'Block style. Easier to read and to diff when the list grows.' },
+    { line: 5, text: 'Flow style. Compact, but a pattern containing [ or ] must be quoted.' },
+  ]}
+/>
+
+Pick one per file and stay with it. Mixed styles make reviews harder than the syntax deserves.

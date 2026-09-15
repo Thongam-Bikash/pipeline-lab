@@ -1,0 +1,24 @@
+A **fork** is your own copy of someone else's repository, still connected to the original, which is
+called the **upstream** repository. You work in your copy and propose changes back with a pull
+request.
+
+## Fork or branch?
+
+Both give you somewhere to work, but they differ in ownership:
+
+- A **branch** lives inside one repository. Use it when you have write access and collaborate in a
+  shared repository.
+- A **fork** is a separate repository with its own settings, permissions, and collaboration space.
+  Use it when you do not have write access, or when you want independence from the upstream project.
+
+Because a fork shares history with the upstream repository, changes can still flow back through pull
+requests.
+
+## Why forks matter for pipelines
+
+A pull request from a fork runs code that someone outside your project wrote. That is exactly the
+situation where a careless workflow hands a stranger your secrets.
+
+You will meet this properly in the security module, where two triggers behave very differently with
+fork pull requests. For now, hold on to the shape of it: **a fork means the code proposing the change
+is not yours**, and the pipeline has to treat it that way.

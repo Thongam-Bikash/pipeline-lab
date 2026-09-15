@@ -1,0 +1,49 @@
+import { AnnotatedYaml } from '@/features/lessons/AnnotatedYaml'
+
+Workflows live in `.github/workflows/` in your repository. Any file there ending in `.yml` or `.yaml`
+is a workflow, and the file name is yours to choose.
+
+## One file, one purpose
+
+Nothing stops you putting every job in one file, but files are the unit people read, review, and
+disable. Splitting by purpose tends to age better:
+
+- `ci.yml` — what runs on every pull request
+- `deploy.yml` — what happens after a merge
+- `nightly.yml` — the scheduled work
+
+Each file has its own triggers, so splitting also means a change to the deployment does not re-run
+the test suite.
+
+## The file is part of the branch
+
+A workflow file is just a file in the repository, which has two consequences people trip over:
+
+- Changing a workflow is a pull request like any other, and the change can be reviewed.
+- The version that runs is the one on the branch that triggered it, so a fix to a broken workflow
+  only takes effect where that fix exists.
+
+Some events are the exception: scheduled runs and a few others only trigger from the workflow file on
+the **default branch**. You will meet those in the triggers module.
+
+## What a minimal file looks like
+
+<AnnotatedYaml
+  file=".github/workflows/ci.yml"
+  yaml={`name: CI
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: npm test
+`}
+  notes={[
+    { line: 2, text: 'A single event, written in its shortest form. on: push means every push to any branch.' },
+    { line: 5, text: 'Pinning the image, rather than ubuntu-latest, keeps the machine steady until you choose to move.' },
+  ]}
+/>
+
+Try changing this in the playground: swap `on: push` for `on: pull_request`, then fire a push event
+and watch the run be skipped with a reason.

@@ -1,0 +1,37 @@
+Pipelines cost machine time, and that bill lands on somebody. Knowing the shape of it changes how you
+design workflows.
+
+## What is free
+
+GitHub Actions usage is free for **public repositories** using standard GitHub-hosted runners, and
+free for **self-hosted runners** whatever the repository. That is why open source projects can run
+large test matrices without a budget conversation.
+
+## What is metered
+
+For **private repositories**, each account gets a quota of free minutes, artifact storage, and cache
+storage, depending on the plan. Usage beyond the included amounts is billed. Two details matter in
+practice:
+
+- Free minutes reset to the full amount at the start of each billing cycle.
+- Minutes are charged to the **repository owner**, not to whoever triggered the run. Anyone with
+  write access can start a workflow, and the owner pays for it.
+
+Storage works differently from minutes: it accrues hourly across the month, so deleting artifacts
+stops future charges but does not erase what has already accrued. Actions cache storage is a separate
+allowance of 10 GB per repository, not shared with artifacts.
+
+## Why this shapes design
+
+Prices change, so check the billing page rather than trusting a number in a lesson, including this
+one. What does not change is the shape of the incentive:
+
+- Minutes are consumed by every run of every job, so a slow pipeline costs money on every pull
+  request, not just at release time.
+- Bigger and faster runners cost more per minute, so "just use a bigger machine" is a trade, not a
+  free win.
+- Caching, path filters, and cancelling superseded runs cut the bill and the waiting at the same
+  time.
+
+The scaling module comes back to this with a pipeline that takes fourteen minutes and has to be
+brought under five.

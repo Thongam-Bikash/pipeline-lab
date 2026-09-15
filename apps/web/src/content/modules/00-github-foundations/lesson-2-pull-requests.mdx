@@ -1,0 +1,27 @@
+A **pull request** proposes merging changes from one branch into another. It turns a set of commits
+into a conversation: collaborators can discuss the work, comment on specific lines, and see automated
+checks, before anything reaches the default branch.
+
+## What a pull request gathers
+
+GitHub puts everything the reviewer needs in one place:
+
+- **Conversation** — the description, comments, reviews, and a timeline of what happened.
+- **Commits** — how the branch changed over time.
+- **Checks** — the results of automated tests, builds, and scans.
+- **Files changed** — the diff that reviewers comment on.
+
+The Checks tab is where your pipeline shows up. That is the whole point of wiring CI to pull
+requests: the machine reports before a human spends attention on it.
+
+## Review is a conversation, not a gate
+
+A reviewer can comment, approve, or request changes. Requesting changes blocks the merge until it is
+resolved, which is deliberate. Approval says a person looked; a green check says the tests ran. You
+want both, and they answer different questions.
+
+## Why this matters for the rest of the course
+
+Every pipeline you build from here on reports into a pull request. When you later require a check to
+pass before merging, you are saying: this specific automated answer must be green before this
+conversation can end.

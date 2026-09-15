@@ -1,0 +1,32 @@
+Three phrases get used as if they were one. They describe how far the automation goes.
+
+## Continuous integration
+
+Every commit is merged into a shared branch often, and each one is built and tested automatically.
+The pipeline's job is to answer one question: did this change break anything?
+
+## Continuous delivery
+
+Integration, plus the pipeline produces something releasable and gets it ready to go: a built
+artifact, a container image, a deployment to staging. The last step to production is a human
+decision, usually a button.
+
+## Continuous deployment
+
+The same, with the button removed. Every change that passes the pipeline goes to production by
+itself.
+
+The difference between the last two is entirely about who decides, not about tooling. Teams move
+from delivery to deployment when their checks are trustworthy enough that a human reading the same
+green ticks adds nothing.
+
+## Where GitHub Actions fits
+
+GitHub Actions runs workflows in response to events in a repository, on machines GitHub hosts or
+machines you host. It covers all three practices: the same mechanism runs your tests, builds your
+artifact, and deploys it, because all of them are just jobs and steps.
+
+Other tools cover the same ground with different trade-offs. Jenkins is self-hosted and endlessly
+pluggable, which means you run and maintain it. GitLab CI, CircleCI, and Azure Pipelines are close
+relatives of Actions in shape. What is worth knowing for an interview is that the concepts transfer:
+events, jobs, steps, runners, artifacts, and environments exist in all of them under some name.

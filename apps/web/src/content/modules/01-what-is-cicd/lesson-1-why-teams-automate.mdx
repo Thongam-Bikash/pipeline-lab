@@ -1,0 +1,33 @@
+**Continuous integration** is the practice of committing to a shared repository often, and checking
+each commit automatically. Committing more often finds errors sooner and shrinks the amount of code
+you have to search when something breaks.
+
+## The problem it solves
+
+Without automation, "does this work?" is answered by whoever remembers to check, on whatever machine
+they happen to have. Two things go wrong:
+
+- A change that breaks something is found days later, tangled with other changes.
+- The answer depends on one person's laptop, so "works on my machine" becomes an argument rather
+  than a fact.
+
+A pipeline answers the same question the same way every time, on a machine nobody has been tinkering
+with.
+
+## What a check can include
+
+Building and testing needs a machine. A CI workflow can run anything you would run yourself:
+
+- linters, which check style and common mistakes
+- type checks
+- unit and integration tests
+- security scans and code coverage
+
+GitHub runs these and reports the result on the pull request, so you can see whether your branch
+introduces an error before anyone merges it.
+
+## When it runs
+
+A workflow can run when an event happens in the repository, such as a push, on a schedule, or when
+something outside GitHub asks it to. Choosing the moment is a real design decision, and it is the
+whole of the triggers module.

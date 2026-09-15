@@ -1,0 +1,156 @@
+{
+  "repositories-and-branches": {
+    "questions": [
+      {
+        "prompt": "Why start a change on a branch rather than committing straight to main?",
+        "choices": [
+          "Branches make commits faster",
+          "Work stays separate from the current state of the project until it is ready",
+          "main cannot accept commits",
+          "Only branches can be reviewed"
+        ],
+        "answer": 1,
+        "explain": "A branch keeps unfinished work away from the branch everyone treats as current, which also gives CI something to check before a merge."
+      },
+      {
+        "prompt": "A pipeline run failed. Which two facts identify what it ran against?",
+        "choices": [
+          "The repository name and the author",
+          "The commit and the branch",
+          "The runner and the operating system",
+          "The workflow name and the time"
+        ],
+        "answer": 1,
+        "explain": "A run happens against a specific commit on a specific branch. Small commits make that answer useful."
+      },
+      {
+        "prompt": "What is a branch, technically?",
+        "choices": [
+          "A copy of the repository",
+          "A pointer at the newest commit in a line of commits",
+          "A folder inside .github",
+          "A snapshot of the working directory"
+        ],
+        "answer": 1,
+        "explain": "A branch is a moving pointer at a commit. That is why creating one is cheap."
+      }
+    ]
+  },
+  "pull-requests": {
+    "questions": [
+      {
+        "prompt": "Where does a pipeline report its result on a pull request?",
+        "choices": ["The Conversation tab", "The Checks tab", "The Files changed tab", "The Commits tab"],
+        "answer": 1,
+        "explain": "Checks shows the results of automated tests, builds, and scans for the proposed changes."
+      },
+      {
+        "prompt": "A reviewer selects Request changes. What happens?",
+        "choices": [
+          "The pull request is closed",
+          "The merge is blocked until it is resolved",
+          "The branch is deleted",
+          "The checks re-run"
+        ],
+        "answer": 1,
+        "explain": "Requesting changes blocks the merge deliberately, until someone resolves or dismisses it."
+      },
+      {
+        "prompt": "What does a green check tell you that an approval does not?",
+        "choices": [
+          "That a person read the change",
+          "That the automated tests ran and passed",
+          "That the branch is up to date",
+          "That the change is safe to deploy"
+        ],
+        "answer": 1,
+        "explain": "Approval says a person looked. A check says the automation ran. They answer different questions, so teams usually want both."
+      }
+    ]
+  },
+  "forks": {
+    "questions": [
+      {
+        "prompt": "When is a fork the right choice instead of a branch?",
+        "choices": [
+          "When the change is large",
+          "When you do not have write access to the repository",
+          "When you want the change reviewed",
+          "When the repository is private"
+        ],
+        "answer": 1,
+        "explain": "A fork is your own repository, which is what lets you propose changes to a project you cannot write to."
+      },
+      {
+        "prompt": "What is the upstream repository?",
+        "choices": [
+          "The original repository your fork was copied from",
+          "The default branch of your fork",
+          "A mirror on another host",
+          "The repository that runs the pipeline"
+        ],
+        "answer": 0,
+        "explain": "Your fork stays connected to the upstream repository, which is how pull requests can flow back."
+      },
+      {
+        "prompt": "Why do pull requests from forks need care in a pipeline?",
+        "choices": [
+          "They run slower",
+          "They propose code that is not yours, so the workflow must not hand it secrets",
+          "They cannot be reviewed",
+          "They always target the default branch"
+        ],
+        "answer": 1,
+        "explain": "The proposing code comes from outside the project. The security module covers exactly how the triggers differ."
+      }
+    ]
+  },
+  "protecting-main": {
+    "questions": [
+      {
+        "prompt": "Which ruleset rule makes a CI check binding rather than advisory?",
+        "choices": [
+          "Block force pushes",
+          "Require status checks to pass before merging",
+          "Restrict deletions",
+          "Require linear history"
+        ],
+        "answer": 1,
+        "explain": "Requiring status checks is what stops the merge until your pipeline reports green."
+      },
+      {
+        "prompt": "What does a strict required status check add, compared with a loose one?",
+        "choices": [
+          "It runs more checks in parallel",
+          "The branch must be up to date with the base branch before merging",
+          "It requires an approving review as well",
+          "It blocks force pushes"
+        ],
+        "answer": 1,
+        "explain": "Strict means re-running against the updated base, which costs builds but avoids merging against a stale base."
+      },
+      {
+        "prompt": "Can rulesets and older branch protection rules both apply to one branch?",
+        "choices": [
+          "No, a ruleset replaces them",
+          "Yes, and all applicable rules are enforced",
+          "Only if the ruleset is disabled",
+          "Only for tags"
+        ],
+        "answer": 1,
+        "explain": "They work alongside each other and every applicable rule is enforced."
+      },
+      {
+        "prompt": "Why does 'require a pull request before merging' not guarantee a review?",
+        "choices": [
+          "Reviews are always optional on GitHub",
+          "The rule requires a pull request to be opened, not approved, unless you also require approvals",
+          "It only applies to forks",
+          "It applies to tags, not branches"
+        ],
+        "answer": 1,
+        "explain": "On its own the rule requires the pull request to exist. Requiring a number of approving reviews is a separate setting."
+      }
+    ]
+  }
+}

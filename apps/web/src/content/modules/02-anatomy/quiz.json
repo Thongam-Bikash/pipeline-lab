@@ -41,5 +41,128 @@
         "explain": "A runner begins as an empty machine. Checkout is what puts your repository on it."
       }
     ]
+  },
+  "runners-and-actions": {
+    "questions": [
+      {
+        "prompt": "What is a runner?",
+        "choices": [
+          "A reusable step published by someone else",
+          "The machine that executes a job",
+          "The event that starts a workflow",
+          "A container image for your application"
+        ],
+        "answer": 1,
+        "explain": "A runner is the machine a job runs on, hosted by GitHub or by you."
+      },
+      {
+        "prompt": "A build that changed nothing breaks overnight. Why is the runner image a suspect?",
+        "choices": [
+          "Images are rebuilt regularly, so the preinstalled software can move under you",
+          "Runners lose their cache each night",
+          "GitHub restarts runners daily",
+          "Images are chosen at random"
+        ],
+        "answer": 0,
+        "explain": "Hosted images are updated regularly. The run log records which image it used, under Set up job."
+      },
+      {
+        "prompt": "Which kind of action only runs on Linux runners?",
+        "choices": ["JavaScript", "Composite", "Docker container", "All of them run everywhere"],
+        "answer": 2,
+        "explain": "Docker container actions require a Linux runner, and are slower to start because the container must be built or pulled."
+      },
+      {
+        "prompt": "Why does GitHub suggest using an action rather than a bare command for tool setup?",
+        "choices": [
+          "Actions are always faster",
+          "An action lets you choose a version, so the tool stays the same regardless of image updates",
+          "Commands are not allowed in public repositories",
+          "Actions skip the runner"
+        ],
+        "answer": 1,
+        "explain": "Version selection is the point: it pins what you use instead of whatever the image ships this week."
+      }
+    ]
+  },
+  "where-files-live": {
+    "questions": [
+      {
+        "prompt": "Which file is a workflow?",
+        "choices": [
+          ".github/workflow/ci.yml",
+          ".github/workflows/anything.yml",
+          "workflows/ci.yaml at the repository root",
+          ".github/ci.yml"
+        ],
+        "answer": 1,
+        "explain": "Any .yml or .yaml file directly inside .github/workflows/ is a workflow, whatever it is called."
+      },
+      {
+        "prompt": "You fix a broken workflow on a branch. Where does the fix take effect?",
+        "choices": [
+          "Everywhere immediately",
+          "On the branch that has the fix, because the version that runs is the one on the triggering branch",
+          "Only after merging to the default branch",
+          "Only after the next scheduled run"
+        ],
+        "answer": 1,
+        "explain": "A workflow file is part of the branch. Some events, such as schedules, are the exception and use the default branch."
+      },
+      {
+        "prompt": "Why split work across several workflow files?",
+        "choices": [
+          "GitHub limits a file to one job",
+          "Each file has its own triggers, so unrelated work does not re-run",
+          "Smaller files run faster",
+          "Only one file can use secrets"
+        ],
+        "answer": 1,
+        "explain": "Files are the unit people read and disable, and separate triggers keep a deployment change from re-running the tests."
+      }
+    ]
+  },
+  "yaml-traps": {
+    "questions": [
+      {
+        "prompt": "What happens if you indent a workflow file with tab characters?",
+        "choices": [
+          "Nothing, tabs and spaces are equivalent",
+          "The file fails to parse, because YAML does not allow tabs for indentation",
+          "The tabs are converted to two spaces",
+          "Only the affected job is skipped"
+        ],
+        "answer": 1,
+        "explain": "A tab is a syntax error in YAML. Use spaces, conventionally two per level."
+      },
+      {
+        "prompt": "You write python-version: 3.10 without quotes. What does the parser see?",
+        "choices": ["The text 3.10", "The number 3.1", "An error", "The number 310"],
+        "answer": 1,
+        "explain": "It is read as a number, and the trailing zero is lost. Quote versions so they stay text."
+      },
+      {
+        "prompt": "Why do some projects write \"on\": with quotes?",
+        "choices": [
+          "GitHub requires it",
+          "Older YAML reads bare on as a boolean, and some tools that read the file still do",
+          "It makes the workflow run sooner",
+          "It is needed for scheduled workflows"
+        ],
+        "answer": 1,
+        "explain": "GitHub's parser reads the key as text, but linters and other tools reading YAML 1.1 may not, so the quotes remove all doubt."
+      },
+      {
+        "prompt": "Which is true of flow style, as in branches: [main, 'releases/**']?",
+        "choices": [
+          "It is not valid in workflows",
+          "It means something different from the block list",
+          "It means the same, but patterns containing brackets must be quoted",
+          "It only works for branches"
+        ],
+        "answer": 2,
+        "explain": "Both styles express the same list. In flow style a pattern with [ or ] has to be quoted to parse."
+      }
+    ]
   }
 }

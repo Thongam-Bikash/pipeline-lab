@@ -1,0 +1,124 @@
+{
+  "why-teams-automate": {
+    "questions": [
+      {
+        "prompt": "What does committing more often buy you, according to the practice of continuous integration?",
+        "choices": [
+          "Smaller repositories",
+          "Errors found sooner, and less code to search when one appears",
+          "Fewer merge conflicts with no review",
+          "Faster builds"
+        ],
+        "answer": 1,
+        "explain": "Frequent commits mean a failure points at a small change, instead of days of tangled work."
+      },
+      {
+        "prompt": "Why does running tests on a runner settle a 'works on my machine' argument?",
+        "choices": [
+          "Runners are faster than laptops",
+          "The check runs the same way every time, on a machine nobody has been configuring",
+          "GitHub reviews the code",
+          "Runners use the same operating system as production"
+        ],
+        "answer": 1,
+        "explain": "The value is repeatability: one definition of the check, run somewhere neutral."
+      },
+      {
+        "prompt": "Which of these can a CI workflow reasonably include?",
+        "choices": [
+          "Only unit tests",
+          "Only builds",
+          "Linters, type checks, tests, coverage, and security scans",
+          "Only checks GitHub provides"
+        ],
+        "answer": 2,
+        "explain": "Anything you could run yourself can run in the workflow, and its result reports on the pull request."
+      }
+    ]
+  },
+  "integration-delivery-deployment": {
+    "questions": [
+      {
+        "prompt": "What separates continuous delivery from continuous deployment?",
+        "choices": [
+          "Delivery skips tests",
+          "Deployment removes the human decision before production",
+          "Delivery only works for containers",
+          "Deployment requires self-hosted runners"
+        ],
+        "answer": 1,
+        "explain": "Both produce something releasable. Deployment simply removes the button a person presses."
+      },
+      {
+        "prompt": "A team wants to move from delivery to deployment. What has to be true first?",
+        "choices": [
+          "They must use GitHub Actions",
+          "Their checks must be trustworthy enough that a human reading the same green ticks adds nothing",
+          "They must deploy daily",
+          "They must remove all manual tests"
+        ],
+        "answer": 1,
+        "explain": "The button is a safety net for checks you do not fully trust. Remove the doubt first, then the button."
+      },
+      {
+        "prompt": "Why do the concepts transfer between Actions, Jenkins, GitLab CI, and others?",
+        "choices": [
+          "They share a configuration format",
+          "They all use YAML",
+          "They all express events, jobs, steps, runners, artifacts, and environments under some name",
+          "They are built on the same engine"
+        ],
+        "answer": 2,
+        "explain": "The vocabulary differs, the shape does not, which is what makes the knowledge portable in an interview."
+      }
+    ]
+  },
+  "what-it-costs": {
+    "questions": [
+      {
+        "prompt": "Which usage is free?",
+        "choices": [
+          "Every repository, up to a monthly limit",
+          "Public repositories on standard hosted runners, and self-hosted runners",
+          "Only self-hosted runners",
+          "Private repositories on standard runners"
+        ],
+        "answer": 1,
+        "explain": "Public repositories using standard GitHub-hosted runners are free, as are self-hosted runners."
+      },
+      {
+        "prompt": "In a private repository, who is billed for the minutes a workflow uses?",
+        "choices": [
+          "The person who triggered the run",
+          "The repository owner",
+          "The organisation that owns the runner",
+          "Whoever opened the pull request"
+        ],
+        "answer": 1,
+        "explain": "Anyone with write access can start a run, and the cost falls to the repository owner."
+      },
+      {
+        "prompt": "You delete a large artifact halfway through the billing cycle. What happens to the bill?",
+        "choices": [
+          "The charge disappears entirely",
+          "Future hourly charges stop, but storage already accrued still appears",
+          "Nothing changes until the next cycle",
+          "The minutes quota is refunded"
+        ],
+        "answer": 1,
+        "explain": "Storage accrues hourly. Deleting stops the accrual from that moment; it does not undo what accrued already."
+      },
+      {
+        "prompt": "Why is a slow pipeline a cost problem as well as a waiting problem?",
+        "choices": [
+          "Slow pipelines use larger runners",
+          "Minutes are consumed on every run of every job, so the cost repeats on every pull request",
+          "GitHub charges extra for long jobs",
+          "Caching is billed separately"
+        ],
+        "answer": 1,
+        "explain": "The bill scales with how often the pipeline runs, which is why caching and filters save money and time together."
+      }
+    ]
+  }
+}

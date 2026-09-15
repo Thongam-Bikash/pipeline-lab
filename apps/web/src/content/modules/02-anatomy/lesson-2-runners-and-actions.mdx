@@ -1,0 +1,38 @@
+Two words carry a lot of weight in a workflow file: the machine a job runs on, and the reusable
+pieces its steps call.
+
+## Runners are the machines
+
+A **runner** is the machine that executes a job. It can clone your repository, install tools, and run
+commands. GitHub hosts runners with Ubuntu Linux, Windows, and macOS, and maintains their images; you
+can also host your own.
+
+Each hosted runner arrives with a lot preinstalled, and those images are rebuilt regularly. The exact
+contents are published in the `actions/runner-images` repository, and every run records which image
+it used: expand **Set up job** in the log, then **Runner Image**, and follow the Included Software
+link.
+
+That last detail is worth remembering. When a build breaks overnight with no change of your own, the
+image moving underneath you is a real suspect, and the log tells you which one you got.
+
+## Actions are the reusable pieces
+
+An **action** is a reusable task a step can call with `uses:`. Actions come in three kinds:
+
+- **JavaScript** actions run directly on the runner. They are the quickest to start.
+- **Docker container** actions package their own environment, which makes them reproducible but
+  slower to start, and they only run on Linux runners.
+- **Composite** actions bundle several steps, including `run` steps, under one name.
+
+You can write your own, or use ones published by others. Sharing an action publicly means putting it
+in a public repository.
+
+## Prefer an action over a bare command, usually
+
+GitHub's own advice is to reach for an action when interacting with tools on the runner, because an
+action usually lets you choose a version and pass arguments, and pins the tool version you use rather
+than whatever the image happens to ship this week.
+
+That advice cuts both ways, and it is the subject of a later module: an action is someone else's code
+running in your pipeline. Choosing to trust it, and pinning which version you trust, is a decision
+you make deliberately.
