@@ -1,0 +1,168 @@
+{
+  "push-and-pull-request": {
+    "questions": [
+      {
+        "prompt": "With no types listed, when does a pull_request workflow run?",
+        "choices": [
+          "On every pull request activity",
+          "When the pull request is opened, reopened, or its head branch is updated",
+          "Only when it is opened",
+          "Only when it is merged"
+        ],
+        "answer": 1,
+        "explain": "The defaults are opened, synchronize, and reopened. Anything else, such as labelled, needs an explicit types list."
+      },
+      {
+        "prompt": "You add types: [labeled]. What happens to the default behaviour?",
+        "choices": [
+          "Labelling is added to the defaults",
+          "Naming types replaces the defaults, so only labelled runs it",
+          "It is rejected as invalid",
+          "It runs on every activity type"
+        ],
+        "answer": 1,
+        "explain": "types replaces the default set, so list every type you want the workflow to run for."
+      },
+      {
+        "prompt": "What does a pull_request run check out for an open, mergeable pull request?",
+        "choices": [
+          "The head branch alone",
+          "The base branch alone",
+          "The merge of the head into the base",
+          "The last released tag"
+        ],
+        "answer": 2,
+        "explain": "You test the merged result, which is what would land. That is why base branch changes can break your run."
+      }
+    ]
+  },
+  "filters": {
+    "questions": [
+      {
+        "prompt": "Which pattern matches page.js and page.jsx, but not page.jsxx?",
+        "choices": ["*.js*", "*.jsx?", "*.js?x", "**.jsx"],
+        "answer": 1,
+        "explain": "? means zero or one of the preceding character, so the x is optional."
+      },
+      {
+        "prompt": "branches lists 'releases/**' then '!releases/**-alpha'. What runs?",
+        "choices": [
+          "Everything under releases/, including alpha branches",
+          "Everything under releases/ except those ending in -alpha",
+          "Nothing, because the two conflict",
+          "Only branches ending in -alpha"
+        ],
+        "answer": 1,
+        "explain": "Order decides: the negation comes after the positive match, so it wins. Reversed, nothing would be excluded."
+      },
+      {
+        "prompt": "A workflow filters only on paths. Someone pushes a tag. Does it run?",
+        "choices": [
+          "Yes, if a changed file matches",
+          "No, path filters are not evaluated for tag pushes",
+          "Yes, tags ignore filters",
+          "Only if the tag matches a branch name"
+        ],
+        "answer": 1,
+        "explain": "Path filters do not apply to tag pushes, which is a common surprise in release workflows."
+      },
+      {
+        "prompt": "You define both branches and paths for one event. When does the workflow run?",
+        "choices": [
+          "When either matches",
+          "When both are satisfied",
+          "When the branch matches, paths are advisory",
+          "Never, they cannot be combined"
+        ],
+        "answer": 1,
+        "explain": "Branch and path filters combine with AND: both must be satisfied."
+      }
+    ]
+  },
+  "manual-and-scheduled": {
+    "questions": [
+      {
+        "prompt": "Why might the Run workflow button be missing for a workflow_dispatch workflow?",
+        "choices": [
+          "The workflow has no inputs",
+          "The workflow file is not on the default branch",
+          "The repository is private",
+          "It has never been run by the API"
+        ],
+        "answer": 1,
+        "explain": "The file must exist on the default branch for the button to appear."
+      },
+      {
+        "prompt": "A schedule is written without timezone. In what zone does it run?",
+        "choices": ["The repository owner's zone", "UTC", "The runner's zone", "The zone of the last committer"],
+        "answer": 1,
+        "explain": "Schedules are UTC unless a timezone is given as an IANA name such as America/New_York."
+      },
+      {
+        "prompt": "A daily 02:30 schedule with a timezone meets a spring-forward change, when 02:30 does not exist. What happens?",
+        "choices": [
+          "The run is skipped that day",
+          "It advances to the next valid time, 03:00",
+          "It runs twice the next day",
+          "The workflow errors"
+        ],
+        "answer": 1,
+        "explain": "Skipped local times advance to the next valid time, so the run happens at 03:00."
+      },
+      {
+        "prompt": "What is the shortest interval a scheduled workflow can use?",
+        "choices": ["Every minute", "Every 5 minutes", "Every 15 minutes", "Every hour"],
+        "answer": 1,
+        "explain": "Five minutes is the documented minimum, and busy periods can delay a run anyway."
+      }
+    ]
+  },
+  "pull-request-target": {
+    "questions": [
+      {
+        "prompt": "What context does pull_request_target run in?",
+        "choices": [
+          "The merge commit of the pull request",
+          "The base repository's default branch, with secrets and a writable token",
+          "The fork's default branch",
+          "A sandbox with no repository access"
+        ],
+        "answer": 1,
+        "explain": "It runs privileged, using the workflow file from your default branch rather than the contributor's merge commit."
+      },
+      {
+        "prompt": "Which task is pull_request_target actually meant for?",
+        "choices": [
+          "Building and testing contributor code",
+          "Labelling or commenting on a pull request from a fork",
+          "Deploying to production",
+          "Running the fork's install scripts"
+        ],
+        "answer": 1,
+        "explain": "It exists so a workflow can react to a fork's pull request, which the read-only pull_request run cannot do."
+      },
+      {
+        "prompt": "Why is checking out the pull request head inside pull_request_target dangerous?",
+        "choices": [
+          "The checkout is slow",
+          "A stranger's code then runs with your secrets and write access",
+          "The merge commit does not exist",
+          "It breaks required status checks"
+        ],
+        "answer": 1,
+        "explain": "That combination is the pwn request: untrusted code executing in a privileged context, risking secrets and cache poisoning."
+      },
+      {
+        "prompt": "You must build contributor code and post a result that needs write access. What is the safe shape?",
+        "choices": [
+          "One pull_request_target workflow that does both",
+          "Two workflows: an untrusted build on pull_request, then a trusted one that reads its output",
+          "Run everything on the fork",
+          "Give the fork write access"
+        ],
+        "answer": 1,
+        "explain": "Splitting keeps untrusted code away from the privileged step, which is the pattern the security module builds."
+      }
+    ]
+  }
+}

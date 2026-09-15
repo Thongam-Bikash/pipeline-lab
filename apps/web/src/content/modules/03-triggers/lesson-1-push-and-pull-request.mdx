@@ -1,0 +1,48 @@
+import { AnnotatedYaml } from '@/features/lessons/AnnotatedYaml'
+
+The `on:` key decides when a workflow runs. Two events cover most day-to-day CI.
+
+## push
+
+`push` fires when commits reach a branch or a tag. With no filters it runs for every push to every
+branch, which is rarely what you want for long.
+
+## pull_request
+
+`pull_request` fires on activity on a pull request in your repository. With no `types` given, it runs
+when a pull request is **opened**, **reopened**, or when the head branch is updated
+(**synchronize**). Those three defaults are worth memorising, because most "why didn't it run?"
+questions are about them: labelling a pull request, or closing it, does nothing unless you ask for
+those types.
+
+<AnnotatedYaml
+  file=".github/workflows/ci.yml"
+  yaml={`on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+`}
+  notes={[
+    { line: 2, text: 'Direct pushes to main, which after a merge is how the deploy path usually starts.' },
+    { line: 4, text: 'Naming types replaces the defaults, so list every type you want, not only the extra one.' },
+  ]}
+/>
+
+## The merge commit, not your branch
+
+For an open, mergeable pull request, the checkout you get is the **merge** of your branch into the
+base, not your branch alone. Your tests run against the merged result, which is the thing that would
+land.
+
+That is usually what you want, and occasionally surprising: a pull request can fail because of
+something on the base branch that your commits never touched.
+
+## Both events at once
+
+A pull request from a branch in the same repository fires `pull_request`, and pushing to that branch
+fires `push` too. Without branch filters you get two runs for one action, which wastes minutes and
+confuses the checks list. Filtering `push` to the branches you actually deploy from is the usual fix.
+
+Try it in the playground: set `on: push` with `branches: [main]`, then fire a push event on a
+different branch and read the reason the run was skipped.

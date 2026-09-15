@@ -1,0 +1,152 @@
+{
+  "contexts": {
+    "questions": [
+      {
+        "prompt": "Which context tells you the name of the branch or tag that triggered the run?",
+        "choices": ["runner.name", "github.ref_name", "job.ref", "env.BRANCH"],
+        "answer": 1,
+        "explain": "github.ref_name is the short name; github.ref is the full ref, such as refs/heads/main."
+      },
+      {
+        "prompt": "An if condition never fires, and you suspect a typo in a context name. What does GitHub do with an unknown context?",
+        "choices": [
+          "Fails the workflow",
+          "Usually evaluates it to an empty string, so the condition is simply false",
+          "Skips the job with a warning",
+          "Substitutes the default value"
+        ],
+        "answer": 1,
+        "explain": "It quietly becomes empty, which is why printing the expression in a run step is the fastest way to see what it held."
+      },
+      {
+        "prompt": "Which function turns a JSON string into data you can index?",
+        "choices": ["toJSON", "fromJSON", "format", "join"],
+        "answer": 1,
+        "explain": "fromJSON parses a string into real data, which is how dynamic matrices are built later."
+      }
+    ]
+  },
+  "conditions": {
+    "questions": [
+      {
+        "prompt": "A step has if: github.event_name == 'push'. An earlier step failed. Does it run?",
+        "choices": [
+          "Yes, the condition is about the event only",
+          "No, because every if carries an invisible success() unless you write a status function",
+          "Yes, if the job has continue-on-error",
+          "Only if it is the last step"
+        ],
+        "answer": 1,
+        "explain": "The real condition is success() && github.event_name == 'push'."
+      },
+      {
+        "prompt": "You want a step to run even when an earlier one failed, but not when the run is cancelled. What does GitHub recommend?",
+        "choices": ["if: always()", "if: ${{ !cancelled() }}", "if: failure()", "if: success() || failure()"],
+        "answer": 1,
+        "explain": "always() also runs during cancellation and can hold a run open; !cancelled() expresses the intent precisely."
+      },
+      {
+        "prompt": "A step fails with continue-on-error: true. What are its outcome and conclusion?",
+        "choices": [
+          "outcome success, conclusion failure",
+          "outcome failure, conclusion success",
+          "both failure",
+          "both success"
+        ],
+        "answer": 1,
+        "explain": "outcome is before continue-on-error and conclusion after, so the job carries on while the failure stays visible."
+      },
+      {
+        "prompt": "A job that another job needs is skipped. What happens to the dependent job?",
+        "choices": [
+          "It runs anyway",
+          "It is skipped too, unless its if says otherwise",
+          "It fails",
+          "It waits indefinitely"
+        ],
+        "answer": 1,
+        "explain": "A failed or skipped dependency skips the jobs that need it, and the skip travels down the chain."
+      }
+    ]
+  },
+  "env-vars-secrets": {
+    "questions": [
+      {
+        "prompt": "Where does a non-sensitive setting that differs between environments belong?",
+        "choices": ["env in the workflow file", "vars, defined outside the file", "secrets", "A file in the repository"],
+        "answer": 1,
+        "explain": "Configuration variables exist at organisation, repository, or environment level, and are read with vars.NAME."
+      },
+      {
+        "prompt": "Why should a password never be a variable?",
+        "choices": [
+          "Variables have a length limit",
+          "Variables render unmasked in build output",
+          "Variables cannot be read in run steps",
+          "Variables are shared with forks"
+        ],
+        "answer": 1,
+        "explain": "GitHub's own warning: variables are not masked. Sensitive values belong in secrets."
+      },
+      {
+        "prompt": "Which statement about secret redaction in logs is true?",
+        "choices": [
+          "Every appearance of a secret is always masked",
+          "Redaction is not guaranteed, especially if the value is transformed, and covers only the current job",
+          "Redaction works across all jobs in the run",
+          "Redaction happens only for organisation secrets"
+        ],
+        "answer": 1,
+        "explain": "Transformations such as base64 can defeat it, and the runner only knows secrets used in the current job."
+      }
+    ]
+  },
+  "outputs-and-artifacts": {
+    "questions": [
+      {
+        "prompt": "How does a step publish a small value for later jobs?",
+        "choices": [
+          "echo name=value >> \"$GITHUB_OUTPUT\", with an id on the step",
+          "By writing to the workspace",
+          "With actions/upload-artifact",
+          "By setting an env variable"
+        ],
+        "answer": 0,
+        "explain": "The step needs an id, writes name=value to $GITHUB_OUTPUT, and the job re-exports it under outputs."
+      },
+      {
+        "prompt": "How does a dependent job read that value?",
+        "choices": [
+          "steps.build.outputs.version",
+          "needs.build.outputs.version",
+          "env.version",
+          "jobs.build.version"
+        ],
+        "answer": 1,
+        "explain": "The steps context is per job. Across jobs you read needs.<job>.outputs.<name>."
+      },
+      {
+        "prompt": "What is the difference between an artifact and a cache?",
+        "choices": [
+          "Nothing, they are two names for the same store",
+          "An artifact is output you meant to keep and share; a cache exists to make a later run faster and may vanish",
+          "Artifacts are only for logs",
+          "Caches persist longer than artifacts"
+        ],
+        "answer": 1,
+        "explain": "Treating a cache as storage is a common mistake: it is an optimisation and can disappear at any time."
+      },
+      {
+        "prompt": "What does appending Markdown to $GITHUB_STEP_SUMMARY do?",
+        "choices": [
+          "Adds a comment to the pull request",
+          "Puts the content on the run's summary page",
+          "Creates an annotation on a line of code",
+          "Writes to the job log only"
+        ],
+        "answer": 1,
+        "explain": "Summaries surface results without making anyone read the log; annotations are the ::error file=...:: form instead."
+      }
+    ]
+  }
+}

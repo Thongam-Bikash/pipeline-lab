@@ -1,0 +1,43 @@
+import { AnnotatedYaml } from '@/features/lessons/AnnotatedYaml'
+
+A workflow reads the run it is part of through **contexts**, written inside `${{ }}`.
+
+## The ones you will use constantly
+
+- `github` — the event and the repository: `github.ref`, `github.ref_name`, `github.event_name`,
+  `github.sha`, `github.actor`, `github.repository`
+- `env`, `vars`, `secrets` — values you set, covered in their own lesson
+- `inputs` — what a manual or called run was given
+- `needs` — the results and outputs of jobs this one waited for
+- `matrix` — the combination this job is running
+- `steps` — what earlier steps in this job produced
+- `job`, `runner`, `strategy` — the current job's status, the machine, and the matrix settings
+
+<AnnotatedYaml
+  file=".github/workflows/ci.yml"
+  yaml={`jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "Building \${{ github.ref_name }} on \${{ runner.os }}"
+`}
+  notes={[{ line: 5, text: 'Interpolation happens before the shell sees the line, so this is plain text by the time it runs.' }]}
+/>
+
+## Functions
+
+Expressions come with a small set of functions: `contains`, `startsWith`, `endsWith`, `format`,
+`join`, `toJSON`, `fromJSON`, and `hashFiles`. `fromJSON` is the one that unlocks patterns later,
+because it turns a JSON string into real data, which is how dynamic matrices are built.
+
+Comparisons are loose: `1 == '1'` is true. Strings are compared case-insensitively.
+
+## Where they are allowed
+
+Most places that take a value take an expression. Some keys are evaluated before a job starts, so
+they cannot see `steps` or `job`. The simulator will tell you when an expression cannot be resolved,
+rather than quietly producing an empty string — but on GitHub an unknown context usually **is** an
+empty string, which is how `if` conditions end up always false.
+
+That failure mode is worth expecting: if a condition never fires, print the expression in a `run`
+step and look at what it actually contained.

@@ -1,0 +1,54 @@
+import { AnnotatedYaml } from '@/features/lessons/AnnotatedYaml'
+
+`if:` decides whether a job or a step runs. It accepts an expression, and you can leave off the
+`${{ }}` because the value is already evaluated as one.
+
+<AnnotatedYaml
+  file=".github/workflows/deploy.yml"
+  yaml={`jobs:
+  deploy:
+    needs: [test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - run: ./deploy.sh
+      - name: Tell the team it broke
+        if: failure()
+        run: ./notify.sh
+`}
+  notes={[
+    { line: 4, text: 'Only deploy from main. needs already made this wait for test.' },
+    { line: 9, text: 'failure() overrides the default, so this step runs precisely when an earlier step failed.' },
+  ]}
+/>
+
+## The default nobody tells you about
+
+Every `if` carries an invisible `success()` unless you write a status function yourself. That is why
+a step with `if: github.event_name == 'push'` still does not run after an earlier step failed: the
+real condition is `success() && github.event_name == 'push'`.
+
+## The four status functions
+
+- `success()` — true when everything before this succeeded
+- `failure()` — true when something before this failed
+- `cancelled()` — true when the run was cancelled
+- `always()` — true no matter what, including when cancelled
+
+`always()` is the one to use carefully. GitHub recommends `if: ${{ !cancelled() }}` instead when you
+mean "even if something failed", because `always()` also runs during a cancellation and can keep a
+run alive until it times out.
+
+To add conditions to a failure path, keep the status function: `if: failure() && steps.demo.conclusion == 'failure'`.
+
+## Jobs, needs, and skipping
+
+At job level these functions consider the jobs this one needed. If a needed job fails **or is
+skipped**, dependent jobs are skipped too, and the skip travels down the chain. `if: always()` on a
+reporting job is how you break that chain deliberately.
+
+## outcome and conclusion
+
+A step has both. `outcome` is the result before `continue-on-error` is applied; `conclusion` is after
+it. A step that fails with `continue-on-error: true` has outcome `failure` and conclusion `success` —
+which is exactly what lets the job carry on while you can still tell that the step failed.

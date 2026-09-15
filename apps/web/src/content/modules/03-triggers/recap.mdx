@@ -1,0 +1,7 @@
+- `pull_request` defaults to the activity types `opened`, `synchronize`, and `reopened`; naming `types` replaces those defaults.
+- A `pull_request` checkout is the merge of your branch into the base, so the base can break your run.
+- In filters `*` stops at `/`, `**` crosses it, and `?` and `+` are quantifiers on the character before them.
+- Pattern order decides the answer, and a `!` pattern needs a positive pattern to subtract from.
+- Path filters are skipped for tag pushes, and a branch filter plus a path filter must both be satisfied.
+- Schedules run on the default branch, in UTC unless you set `timezone`, and never more often than every 5 minutes.
+- `pull_request_target` runs privileged, so never build or run pull request code with it.

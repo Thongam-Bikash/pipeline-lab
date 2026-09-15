@@ -1,0 +1,60 @@
+import { AnnotatedYaml } from '@/features/lessons/AnnotatedYaml'
+
+Filters narrow an event to the refs and files you care about.
+
+## The characters, precisely
+
+Filter patterns are not quite globs you know from a shell:
+
+- `*` matches zero or more characters, but **not** `/`
+- `**` matches zero or more of any character, including `/`
+- `?` matches **zero or one of the preceding character**
+- `+` matches **one or more of the preceding character**
+- `[]` matches one character from the set or range, limited to `a-z`, `A-Z`, and `0-9`
+- `!` at the **start** of a pattern negates it; anywhere else it is an ordinary character
+
+`?` and `+` are the two that catch people out: they are quantifiers, so `*.jsx?` matches `page.js`
+and `page.jsx`, not "any single character".
+
+Because `*`, `[` and `!` are special in YAML too, a pattern starting with one must be quoted.
+
+## Order decides the answer
+
+Patterns are checked in order, and a later match wins:
+
+<AnnotatedYaml
+  file=".github/workflows/release.yml"
+  yaml={`on:
+  push:
+    branches:
+      - 'releases/**'
+      - '!releases/**-alpha'
+`}
+  notes={[
+    { line: 4, text: 'Everything under releases/ is included first.' },
+    { line: 5, text: 'The negation comes after, so alpha branches are excluded again. Swap the two lines and nothing is excluded.' },
+  ]}
+/>
+
+A negative pattern needs at least one positive pattern to subtract from. If you only want to exclude,
+use `branches-ignore` instead, and note that you cannot use `branches` and `branches-ignore` for the
+same event.
+
+## Branches and tags are separate worlds
+
+If you define only `branches`, a tag push will not run the workflow, and the reverse is also true.
+Define neither and both run it.
+
+## Paths, and when they do not apply
+
+`paths` and `paths-ignore` filter on the files a push or pull request changed:
+
+- If **at least one** changed file matches `paths`, the workflow runs.
+- If **every** changed file matches `paths-ignore`, it does not.
+- Path filters are **not** evaluated for tag pushes.
+- If a push changed no files, a path-filtered workflow does not run.
+
+Combining a branch filter with a path filter means **both** must be satisfied.
+
+Try each of these in the playground: the event panel lets you set the branch, the tag, and the list
+of changed files, and the run view tells you exactly which filter rejected the event.

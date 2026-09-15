@@ -1,0 +1,67 @@
+import { AnnotatedYaml } from '@/features/lessons/AnnotatedYaml'
+
+Not everything starts with a commit.
+
+## Manual runs
+
+`workflow_dispatch` adds a Run workflow button, and lets you ask for input:
+
+<AnnotatedYaml
+  file=".github/workflows/deploy.yml"
+  yaml={`on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Where to deploy
+        type: choice
+        options: [staging, production]
+        required: true
+      dry-run:
+        type: boolean
+        default: true
+`}
+  notes={[
+    { line: 5, text: 'Inputs can be string, choice, boolean, or environment, and can be required or defaulted.' },
+    { line: 10, text: 'Read them with the inputs context, for example inputs.dry-run.' },
+  ]}
+/>
+
+The workflow file must exist on the **default branch** for the button to appear. Once it has run at
+least once, you can dispatch it against any branch or tag through the API or the CLI.
+
+## Schedules
+
+`schedule` takes POSIX cron, five fields: minute, hour, day of month, month, day of week.
+
+<AnnotatedYaml
+  file=".github/workflows/report.yml"
+  yaml={`on:
+  schedule:
+    - cron: '30 5 * * 1-5'
+      timezone: America/New_York
+`}
+  notes={[
+    { line: 3, text: '05:30, Monday to Friday. The shortest interval allowed is every 5 minutes.' },
+    { line: 4, text: 'Without timezone the schedule runs in UTC. With it, the time is local to that IANA zone.' },
+  ]}
+/>
+
+Four things to know before you rely on one:
+
+- Scheduled runs only happen on the **default branch**, from the file on that branch.
+- Without `timezone`, times are UTC. Half the world's "why did it run at the wrong hour" reports are
+  this.
+- During a daylight-saving spring forward, a local time that does not exist advances to the next
+  valid time: a 02:30 schedule runs at 03:00.
+- Schedules can be delayed when the platform is busy, especially on the hour. Pick an odd minute.
+- GitHub does not support `@daily`, `@hourly`, and similar shorthands.
+
+## Other ways in
+
+- `release` runs on release activity, such as `published`.
+- `repository_dispatch` lets something outside GitHub start a workflow with a custom `event_type`.
+- `workflow_call` marks a workflow as callable by another workflow, which the reusability module
+  builds on.
+
+The 3 a.m. job scenario is waiting for you once this module is finished: a report that fires at the
+wrong local time, which you fix with what is above.

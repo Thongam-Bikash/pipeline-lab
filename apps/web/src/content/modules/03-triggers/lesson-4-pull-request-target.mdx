@@ -1,0 +1,43 @@
+Two triggers look almost identical and differ in the one way that matters.
+
+## The difference
+
+- `pull_request` runs in the context of the **merge commit**: your branch merged into the base. For a
+  pull request from a fork, the workflow gets a read-only token and no access to your secrets.
+- `pull_request_target` runs in the context of the **base repository's default branch**, not the
+  merge commit. The workflow it runs is the one on your default branch, and it **does** have the
+  repository's secrets and a writable token.
+
+GitHub's reason for `pull_request_target` existing is narrow and useful: it lets a workflow label a
+pull request, leave a comment, or otherwise react to a contribution from a fork, which the read-only
+`pull_request` run cannot do.
+
+## Why it is dangerous
+
+The danger appears the moment you combine the privileged context with the contributor's code. If a
+`pull_request_target` workflow checks out the pull request's head and runs anything from it — a build
+script, a test, a dependency's install hook — then a stranger's code is running with your secrets and
+write access.
+
+GitHub's own warning lists the consequences: cache poisoning, and unintended access to write
+privileges or secrets. The attack has a name in the community, "pwn request", because it turns a
+pull request into remote code execution in your repository.
+
+## The rule to remember
+
+> Avoid `pull_request_target` if you need to build or run code from the pull request.
+
+If you only need to react to the pull request's metadata — its title, labels, author — then
+`pull_request_target` without any checkout of the head is the right tool, and the safe one.
+
+If you genuinely need to build contributor code **and** post a result that needs write access, the
+pattern is two workflows: an untrusted one that builds on `pull_request` and uploads its output, and
+a trusted one triggered by the first finishing, which reads that output and does the privileged part.
+The security module walks through building exactly that, and a scenario makes you fix a workflow that
+got it wrong.
+
+## While you are here
+
+`pull_request_target` defaults to the same activity types as `pull_request`: `opened`,
+`synchronize`, and `reopened`. Branches with names that look like commit SHAs may not trigger it at
+all, which is a deliberate safety measure rather than a bug.

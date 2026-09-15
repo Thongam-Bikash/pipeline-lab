@@ -1,0 +1,67 @@
+import { AnnotatedYaml } from '@/features/lessons/AnnotatedYaml'
+
+Jobs get their own machines, so passing anything between them is deliberate. There are two
+mechanisms, for two sizes of thing.
+
+## Outputs: small values
+
+A step writes a name and value to the file at `$GITHUB_OUTPUT`. A job re-exports what it wants, and
+dependent jobs read it from `needs`.
+
+<AnnotatedYaml
+  file=".github/workflows/release.yml"
+  yaml={`jobs:
+  build:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: \${{ steps.meta.outputs.version }}
+    steps:
+      - id: meta
+        run: echo "version=1.4.2" >> "$GITHUB_OUTPUT"
+  publish:
+    needs: [build]
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "Publishing \${{ needs.build.outputs.version }}"
+`}
+  notes={[
+    { line: 7, text: 'The step needs an id, or nothing can refer to its outputs.' },
+    { line: 8, text: 'The format is name=value, appended to the file the variable points at.' },
+    { line: 5, text: 'A job output re-exports a step output under the job, which is what needs can see.' },
+  ]}
+/>
+
+For a value with newlines, use the delimiter form:
+
+<AnnotatedYaml
+  file="multiline.yml"
+  yaml={`- id: notes
+  run: |
+    echo "notes<<EOF" >> "$GITHUB_OUTPUT"
+    echo "line one" >> "$GITHUB_OUTPUT"
+    echo "line two" >> "$GITHUB_OUTPUT"
+    echo "EOF" >> "$GITHUB_OUTPUT"
+`}
+  notes={[{ line: 3, text: 'Pick a delimiter that cannot appear in the value. If the value is arbitrary, write a file instead.' }]}
+/>
+
+## Artifacts: files
+
+An **artifact** is a file or collection of files produced by a run. Artifacts persist after the job
+ends and can be downloaded by another job in the same run, or by a person afterwards. Typical uses
+are build output, test results and screenshots, logs, and coverage reports.
+
+Upload with `actions/upload-artifact`, download with `actions/download-artifact`. Artifacts are not a
+cache: a cache exists to make a later run faster and can vanish at any time, while an artifact is
+output you meant to keep.
+
+## Job summaries and annotations
+
+Two more ways a run can talk to you:
+
+- Appending Markdown to `$GITHUB_STEP_SUMMARY` puts it on the run's summary page, which beats making
+  someone read the log.
+- Echoing `::error file=app.js,line=12::Message` creates an annotation shown against that line.
+
+The simulator understands all four of these, so you can practise them in the playground and watch the
+outputs, summary, and annotations appear in the run view.
