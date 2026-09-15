@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button/Button'
 import { Dialog } from '@/components/ui/Dialog/Dialog'
+import { authClient } from '@/features/account/client'
+import { clearRemote } from '@/features/account/sync'
 import { useProgress } from './store'
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })
@@ -9,16 +11,27 @@ export function ProgressPage() {
   const lessons = useProgress((state) => state.lessons)
   const scenarios = useProgress((state) => state.scenarios)
   const reset = useProgress((state) => state.reset)
+  const { data: session } = authClient.useSession()
   const [confirming, setConfirming] = useState(false)
 
   const lessonEntries = Object.entries(lessons)
   const scenarioEntries = Object.entries(scenarios)
   const nothingYet = lessonEntries.length === 0 && scenarioEntries.length === 0
 
+  const confirmReset = async () => {
+    await clearRemote()
+    reset()
+    setConfirming(false)
+  }
+
   return (
     <div className="max-w-[68ch]">
       <h1 className="text-3xl font-bold">Your progress</h1>
-      <p className="mt-2 text-muted">Progress is kept in this browser. Signing in to sync it across devices comes later.</p>
+      <p className="mt-2 text-muted">
+        {session
+          ? 'Progress is saved to your account, so it follows you to every device you sign in on.'
+          : 'Progress is kept in this browser. Sign in to keep it in step across your devices.'}
+      </p>
 
       {nothingYet ? (
         <p className="mt-8">You have not finished a lesson or a scenario yet.</p>
@@ -60,15 +73,11 @@ export function ProgressPage() {
       </div>
 
       <Dialog open={confirming} title="Reset progress?" onClose={() => setConfirming(false)}>
-        <p className="max-w-[40ch] text-sm">This clears every finished lesson and scenario in this browser. Your theme setting is kept.</p>
+        <p className="max-w-[40ch] text-sm">
+          This clears every finished lesson and scenario in this browser{session ? ' and in your account' : ''}. Your theme setting is kept.
+        </p>
         <div className="mt-5 flex gap-3">
-          <Button
-            variant="primary"
-            onClick={() => {
-              reset()
-              setConfirming(false)
-            }}
-          >
+          <Button variant="primary" onClick={() => void confirmReset()}>
             Reset progress
           </Button>
           <Button onClick={() => setConfirming(false)}>Cancel</Button>

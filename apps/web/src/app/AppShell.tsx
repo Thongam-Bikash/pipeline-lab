@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router'
 import { authClient } from '@/features/account/client'
+import { sessionChanged } from '@/features/account/sync'
 import { useSettings, type Theme } from './settings'
 
 const THEMES: Theme[] = ['auto', 'light', 'dark']
@@ -12,6 +14,12 @@ export function AppShell() {
   const theme = useSettings((state) => state.theme)
   const setTheme = useSettings((state) => state.setTheme)
   const { data: session, isPending } = authClient.useSession()
+  const userId = session?.user.id
+
+  // Signing in syncs this browser's progress with the account; signing out clears it.
+  useEffect(() => {
+    if (!isPending) sessionChanged(userId)
+  }, [isPending, userId])
 
   return (
     <>
