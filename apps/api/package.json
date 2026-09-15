@@ -8,9 +8,12 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node dist/migrate.js"
+    "db:migrate": "node dist/migrate.js",
+    "backup": "node dist/backup.js",
+    "backup:drill": "node dist/restore-drill.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1132.0",
     "@better-auth/drizzle-adapter": "^1.7.5",
     "@hono/node-server": "^2.1.1",
     "@hono/zod-validator": "^0.9.1",
