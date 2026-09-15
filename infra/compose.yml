@@ -1,6 +1,12 @@
 # Its own project name, so every command here touches only Pipeline Lab's containers.
 name: pipeline-lab
 
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   web:
     image: ghcr.io/thongam-bikash/pipeline-lab-web:${IMAGE_TAG:-local}
@@ -12,8 +18,94 @@ services:
       - "127.0.0.1:8080:80"
     restart: unless-stopped
     mem_limit: 128m
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      # 127.0.0.1, not localhost: that name also resolves to ::1, which wget tries first
+      # and nginx does not listen on.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging: *logging
+
+  api:
+    image: ghcr.io/thongam-bikash/pipeline-lab-api:${IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    # Published only so the Vite dev and preview servers can proxy to it. In the container
+    # path nothing reaches the API except web's Nginx, over this project's network.
+    ports:
+      - "127.0.0.1:8082:3000"
+    restart: unless-stopped
+    mem_limit: 256m
+    environment:
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging: *logging
+
+  db:
+    image: postgres:18.6-alpine3.24@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+    # 5433: a host Postgres already owns 5432 on the development machine.
+    ports:
+      - "127.0.0.1:5433:5432"
+    restart: unless-stopped
+    mem_limit: 256m
+    environment:
+      POSTGRES_USER: pipeline_lab
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in infra/.env}
+      POSTGRES_DB: pipeline_lab
+    volumes:
+      # Postgres 18 moved PGDATA under a version directory and declares the volume one
+      # level up. Mounting /var/lib/postgresql/data would lose the database on an image change.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pipeline_lab -d pipeline_lab"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    logging: *logging
+
+  # Local only: catches every outgoing email so verification and reset work offline.
+  mailpit:
+    image: axllent/mailpit:v1.31.1@sha256:98b916bd3c8d61f7633a52d3ea2f58d00620cb01ca57ab59edde68c347a95365
+    profiles: [dev]
+    ports:
+      - "127.0.0.1:8083:8025"
+    restart: unless-stopped
+    mem_limit: 64m
+    logging: *logging
+
+  # Local only: an S3 API to prove the backup and its restore before pointing them at R2.
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    profiles: [dev]
+    command: server /data --console-address ":9001"
+    ports:
+      - "127.0.0.1:8084:9000"
+      - "127.0.0.1:8085:9001"
+    restart: unless-stopped
+    mem_limit: 256m
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-minioadmin}
+    volumes:
+      - minio-data:/data
+    logging: *logging
+
+volumes:
+  db-data:
+  minio-data:

@@ -6,3 +6,5 @@ test-results/
 *.log
 .env
 .env.*
+# The template carries no secrets and has to ship, or nobody can create the real file.
+!.env.example

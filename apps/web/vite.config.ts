@@ -15,6 +15,10 @@ export default defineConfig({
       'monaco-editor/esm/vs/editor/editor.worker.js': new URL('../../node_modules/monaco-editor/esm/vs/editor/editor.worker.js', import.meta.url).pathname,
     },
   },
+  // Same origin in development as in the container, so cookies and paths behave identically.
+  // Playwright runs `vite preview`, so both servers need the rule.
+  server: { proxy: { '/api': 'http://localhost:8082' } },
+  preview: { proxy: { '/api': 'http://localhost:8082' } },
   test: {
     include: ['src/**/*.test.{ts,tsx}'],
     // The workflow parser imports its JSON schema without an import attribute, which plain Node rejects.
