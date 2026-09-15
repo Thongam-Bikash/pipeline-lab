@@ -13,6 +13,7 @@ import { ScenarioPage } from '@/features/scenarios/ScenarioPage'
 import { AppShell } from './AppShell'
 import { HomePage } from './HomePage'
 import { NotFoundPage } from './NotFoundPage'
+import { PrivacyPage } from './PrivacyPage'
 
 export function App() {
   return (
@@ -31,6 +32,7 @@ export function App() {
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route path="account" element={<AccountPage />} />
+          <Route path="privacy" element={<PrivacyPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

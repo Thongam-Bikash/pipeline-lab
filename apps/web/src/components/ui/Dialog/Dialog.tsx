@@ -19,7 +19,8 @@ export function Dialog({ open, title, onClose, children }: Props) {
   }, [open])
 
   return (
-    <dialog ref={ref} onClose={onClose} className="rounded-base border border-rule bg-surface p-6 text-ink backdrop:bg-ink/40">
+    // m-auto: the browser centres a modal dialog with margin auto, which the base styles reset to 0.
+    <dialog ref={ref} onClose={onClose} className="m-auto rounded-base border border-rule bg-surface p-6 text-ink backdrop:bg-ink/40">
       <h2 className="text-lg font-semibold">{title}</h2>
       <div className="mt-3">{children}</div>
     </dialog>

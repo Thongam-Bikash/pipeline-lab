@@ -57,6 +57,11 @@ export function SignUpPage() {
           Sign in
         </Link>
       </p>
+      <p className="mt-2 text-sm">
+        <Link to="/privacy" className="text-signal underline underline-offset-4">
+          How your data is handled
+        </Link>
+      </p>
 
       <GoogleButton />
     </div>
