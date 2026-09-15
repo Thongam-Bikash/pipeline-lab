@@ -1,10 +1,12 @@
 /// <reference types="vitest/config" />
+import mdx from '@mdx-js/rollup'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  // MDX has to compile lessons to JSX before the React plugin sees them.
+  plugins: [{ enforce: 'pre', ...mdx() }, react(), tailwindcss()],
   resolve: {
     alias: {
       '@': new URL('./src', import.meta.url).pathname,

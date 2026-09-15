@@ -1,0 +1,4 @@
+- A workflow is a YAML file in `.github/workflows/` with events, jobs, and steps.
+- Each job gets its own runner, so jobs share nothing by default.
+- Steps run in order on one machine, using either `uses:` for an action or `run:` for a command.
+- The runner starts empty, which is why checking out your code is usually the first step.

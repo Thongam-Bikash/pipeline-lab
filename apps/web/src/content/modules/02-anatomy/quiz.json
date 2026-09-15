@@ -1,0 +1,45 @@
+{
+  "what-a-workflow-contains": {
+    "questions": [
+      {
+        "prompt": "Where does GitHub look for workflow files?",
+        "choices": [".github/workflows/", ".github/", "workflows/ at the repository root", "Anywhere, as long as the file ends in .yml"],
+        "answer": 0,
+        "explain": "Workflows are read from .github/workflows/. The file name itself does not matter."
+      },
+      {
+        "prompt": "Two jobs in the same workflow need the same built files. What has to happen?",
+        "choices": [
+          "Nothing, jobs share a working directory",
+          "The files must be passed between them, because each job gets its own runner",
+          "The second job must use the same runs-on label",
+          "They must be in the same workflow file"
+        ],
+        "answer": 1,
+        "explain": "Every job starts on a fresh machine. Sharing files between jobs takes a deliberate step, such as an artifact."
+      },
+      {
+        "prompt": "What is the difference between a step's uses and run?",
+        "choices": [
+          "uses runs a command, run calls an action",
+          "uses calls a reusable action, run executes a shell command",
+          "They are the same, but run is older",
+          "uses only works in the first step of a job"
+        ],
+        "answer": 1,
+        "explain": "uses calls an action someone published; run executes the command you write, in the job's shell."
+      },
+      {
+        "prompt": "Why do most jobs start with actions/checkout?",
+        "choices": [
+          "It installs Node",
+          "It logs in to GitHub",
+          "The runner starts without your code, so the job has to fetch it",
+          "It is required before any run step"
+        ],
+        "answer": 2,
+        "explain": "A runner begins as an empty machine. Checkout is what puts your repository on it."
+      }
+    ]
+  }
+}

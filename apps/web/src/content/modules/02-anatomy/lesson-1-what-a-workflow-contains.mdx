@@ -1,0 +1,55 @@
+import { AnnotatedYaml } from '@/features/lessons/AnnotatedYaml'
+
+A workflow is one YAML file that says **when** to run something and **what** to run. It lives in
+`.github/workflows/` in your repository, and the file name is up to you.
+
+Every workflow has the same three parts: the events that start it, the jobs it runs, and the steps
+inside each job.
+
+<AnnotatedYaml
+  file=".github/workflows/ci.yml"
+  yaml={`name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: npm ci
+      - run: npm test
+`}
+  notes={[
+    { line: 3, text: 'on lists the events that start this workflow. This one runs on a push to main.' },
+    { line: 7, text: 'jobs holds one or more jobs. Jobs run in parallel unless one waits for another.' },
+    { line: 9, text: 'runs-on picks the machine. ubuntu-24.04 names an image, rather than letting it move under you.' },
+    { line: 10, text: 'steps run in order on that machine. Each one either uses an action or runs a command.' },
+  ]}
+/>
+
+## Jobs run on machines, steps run in order
+
+A **job** is a unit of work that gets its own fresh machine, called a runner. Two jobs know nothing
+about each other's files unless you pass something between them.
+
+A **step** is one thing done on that machine. A step either:
+
+- uses an action, with `uses:` — a reusable piece someone already wrote, such as `actions/checkout`
+- runs a command, with `run:` — a line of shell, exactly as you would type it
+
+Steps in a job share the same machine and the same working directory, so a `run` step can use files
+that an earlier step created.
+
+## Why the first step is usually checkout
+
+The runner starts empty. It does not have your code until you ask for it, which is what
+`actions/checkout` does. Leave it out and `npm ci` has nothing to install.
+
+## Where the names show up
+
+`name:` at the top names the workflow in the Actions tab. Job ids such as `test` name the job. You
+can add `name:` to a job or a step to give it a friendlier label, and the run view shows that
+instead.
