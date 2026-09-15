@@ -24,7 +24,9 @@ The full specification lives in `docs/PROJECT_BRIEF.md`. Read it before starting
 - `npm test` — Vitest across workspaces (the engine must stay at 100% coverage)
 - `npm run test:e2e` — Playwright
 - `npm run build` — production build
-- `docker compose -f infra/compose.yml up` — run the production image locally
+- `docker compose -f infra/compose.yml --profile dev up --build` — the whole stack locally, with Mailpit and MinIO (copy `infra/.env.example` to `infra/.env` first)
+- `npm run test:e2e` needs that stack running, with `RATE_LIMIT=off` in `infra/.env`
+- `npm test` runs the API's route tests only when `DATABASE_URL` points at a migrated database; otherwise they skip
 
 ## Working rules
 
@@ -46,7 +48,9 @@ The full specification lives in `docs/PROJECT_BRIEF.md`. Read it before starting
 - [x] Phase 1 — Foundation, simulator core, modules 0–4, first scenarios, Docker packaging. The
       deploy job is written and skips until `SITE_URL` is set: there is no server or domain yet,
       so nothing has been deployed and the rollback drill is still untried.
-- [ ] Phase 2 — Accounts and sync: API, Postgres, email and Google sign-in, R2 backups, AWS deploy doc
+- [x] Phase 2 — Accounts and sync: API, Postgres, email and Google sign-in, backups with a restore drill,
+      AWS deploy doc. Run and tested locally only: nothing is deployed, backups are proven against
+      MinIO but not R2, and Google sign-in is wired but never exercised, since no credentials exist.
 - [ ] Phase 3 — Runners, project types, frontend and backend pipelines (modules 5–8)
 - [ ] Phase 4 — Frontend/backend alignment and companion repos (module 9)
 - [ ] Phase 5 — Security, deployment, environments, releases (modules 10–11)

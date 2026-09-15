@@ -48,3 +48,64 @@ The simulator, the app around it, the first five modules, and the first two inci
   concurrency groups, and secrets passed through `env` rather than string interpolation.
 - **Not done yet:** the deploy job skips until the `SITE_URL` variable exists. Nothing has been
   deployed to a server, so the rollback path in `docs/DEPLOY.md` is still untested.
+
+## Phase 2 — Accounts and sync (15 September 2026)
+
+Accounts that keep progress and saved projects in step across devices, with the privacy basics that
+come with holding personal data. Everything runs and is tested locally; nothing is deployed yet.
+
+### API (`apps/api`)
+
+- A Hono server on the page's own origin: the web container's Nginx passes `/api/` to it, and the Vite
+  dev and preview servers do the same, so there is no CORS and no API address baked into the build.
+- Better Auth: email and password with confirmation and password reset by email, Google sign-in
+  wired but hidden until credentials exist, and account deletion. Rate limits on sign-in, sign-up
+  and reset, with a test that every rule names an endpoint that really exists.
+- Drizzle and Postgres 18. Better Auth's tables come from its CLI, and a one-shot container applies
+  migrations before the API starts.
+- One sync route: the browser sends what it has and gets back the merged state. The merge keeps the
+  learner's best result per field (earliest completion, best score, fewest hints, newest project), so
+  devices agree in any order. It runs only on the server and sits under the 100% coverage gate. A row
+  lock stops two devices overwriting each other; with the lock removed, the concurrency test failed
+  five runs out of five.
+- A reset and a deleted project both hold when another device still has the old copy: a reset
+  records its time, and a deleted project leaves an emptied marker.
+- Input is validated at the boundary, timestamps are normalised to one UTC form, project writes are
+  scoped to their owner with 404 for anyone else, and the export lists account columns one by one.
+
+### App (`apps/web`)
+
+- Sign in, sign up, forgotten and reset password, account and privacy pages.
+- Guest progress and projects join the account on first sign-in. An answer that arrives after local
+  progress changed is not adopted, a guest is never cleared, and signing out clears the browser.
+- Saved Playground projects: save, open and delete, with the API's limits enforced before saving.
+- The account page downloads everything the account stores and deletes the account, asking for the
+  password again.
+- The privacy page states what is really stored, including each session's IP address and browser,
+  how long backups keep a copy, and that sign-up reveals whether an address is registered.
+- Password reset links return to the page's own origin.
+- Dialogs open in the middle of the screen. Since Phase 1 they had opened in the top-left corner.
+
+### Delivery
+
+- Compose gains the API, migrations, Postgres, an on-demand backup service, and Mailpit and MinIO for
+  local use only. Every port stays on localhost, and the always-on services fit in 640 MB.
+- Backups: `pg_dump` to S3-compatible storage with a 29-day expiry rule, and a restore drill that
+  restores the newest backup into a scratch database and checks every table. Against MinIO, the
+  restored row counts matched the live database.
+- CI runs the API's route tests against a Postgres service container, runs 26 Playwright tests against
+  the API, database and Mailpit started from the compose file, and builds both images.
+- `docs/DEPLOY.md` covers configuration and secrets, the database, backups and the updated runbook;
+  `docs/deploy-aws.md` describes the equivalent on AWS, as documentation only.
+
+### Not done yet
+
+- Nothing is deployed. There is still no server or domain, so TLS, the droplet runbook, the rollback
+  drill, backups to Cloudflare R2 and the nightly schedule are all untried.
+- Google sign-in has never been exercised: no credentials exist. The brief's test of signing in "with
+  either method" on two devices is met for email and password only.
+- Mail has only gone to Mailpit, so real delivery and SPF and DKIM records are untested.
+- The web app asks for the password before deleting an account, but Better Auth still accepts a
+  direct request from a session less than a day old without it.
+- Resets and deletions compare each device's clock with the server's, so a device running minutes
+  slow can lose a lesson finished just after a reset.
