@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { Button } from '@/components/ui/Button/Button'
 import { authClient, explain } from './client'
 import { GoogleButton } from './GoogleButton'
-import { Input } from './Input'
+import { Input } from '@/components/ui/Input/Input'
 
 export function SignUpPage() {
   const [error, setError] = useState('')

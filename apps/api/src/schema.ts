@@ -26,6 +26,8 @@ export const project = pgTable(
     name: text('name').notNull(),
     source: text('source').notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
+    // A deleted project stays as an emptied marker, so a device still holding a copy cannot recreate it.
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (table) => [index('project_user_id_idx').on(table.userId)],
 )

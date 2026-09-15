@@ -1,9 +1,10 @@
-import { inArray } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { app } from './app.js'
 import { auth } from './auth.js'
 import { user } from './auth-schema.js'
 import { db } from './db.js'
+import { project } from './schema.js'
 
 const emails: string[] = []
 const empty = { lessons: {}, scenarios: {}, projects: {} }
@@ -106,6 +107,22 @@ describe.skipIf(!process.env.DATABASE_URL)('routes against Postgres', () => {
 
     expect((await call(`/api/projects/${saved.id}`, { method: 'DELETE', cookie })).status).toBe(204)
     expect((await call(`/api/projects/${saved.id}`, { method: 'DELETE', cookie })).status).toBe(404)
+  })
+
+  it('does not let another device bring a deleted project back, and keeps none of its content', async () => {
+    const cookie = await signIn()
+    const saved = { id: `p-${crypto.randomUUID()}`, name: 'CI', source: 'name: CI', updatedAt: new Date().toISOString() }
+    const device = { ...empty, projects: { [saved.id]: saved } }
+    await call('/api/state', { method: 'PUT', cookie, body: device })
+    await call(`/api/projects/${saved.id}`, { method: 'DELETE', cookie })
+
+    const after = await (await call('/api/state', { method: 'PUT', cookie, body: device })).json()
+    const exported = await (await call('/api/account/export', { cookie })).json()
+    const [marker] = await db.select().from(project).where(eq(project.id, saved.id))
+
+    expect(after.projects).toEqual({})
+    expect(exported.projects).toEqual({})
+    expect(marker).toMatchObject({ name: '', source: '' })
   })
 
   it('resets progress', async () => {

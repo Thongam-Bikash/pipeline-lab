@@ -1,5 +1,8 @@
 import { loadWorkflow, matchEvent, type ParseResult, type SimEvent } from '@pipeline-lab/engine'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Button } from '@/components/ui/Button/Button'
+import { Input } from '@/components/ui/Input/Input'
+import { removeRemoteProject } from '@/features/account/sync'
 import { EventPanel } from '@/features/simulator/EventPanel'
 import { LogViewer } from '@/features/simulator/LogViewer'
 import { PipelineGraph } from '@/features/simulator/PipelineGraph'
@@ -8,6 +11,7 @@ import { RunHistory } from '@/features/simulator/RunHistory'
 import { SimNotice } from '@/features/simulator/SimNotice'
 import { WorkflowEditor, type EditorApi } from '@/features/simulator/WorkflowEditor'
 import { useRun } from '@/features/simulator/useRun'
+import { MAX_PROJECTS, MAX_SOURCE, useProjects } from './projects'
 
 const TEMPLATE = `name: CI
 on:
@@ -56,6 +60,17 @@ export function PlaygroundPage() {
   const editor = useRef<EditorApi | undefined>(undefined)
   const { run, runs, current, playing, speed, start, step, changeSpeed, setCurrent, togglePlaying } = useRun({ seed: 3 })
 
+  const projects = useProjects((state) => state.projects)
+  const saveProject = useProjects((state) => state.save)
+  const removeProject = useProjects((state) => state.remove)
+  const [projectId, setProjectId] = useState<string>()
+  const [name, setName] = useState('')
+
+  // A project deleted on another device drops out of the list, and this becomes an unsaved draft.
+  const openId = projectId && projects[projectId] ? projectId : undefined
+  const tooLong = source.length > MAX_SOURCE
+  const full = !openId && Object.keys(projects).length >= MAX_PROJECTS
+
   // Re-parse shortly after typing stops, so every keystroke does not run the parser.
   useEffect(() => {
     const timer = setTimeout(() => void loadWorkflow(source).then(setParsed), 250)
@@ -82,6 +97,26 @@ export function PlaygroundPage() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [togglePlaying, step])
 
+  const open = (id: string) => {
+    const project = projects[id]
+    setProjectId(project?.id)
+    setName(project?.name ?? '')
+    if (project) setSource(project.source)
+  }
+
+  const save = (formEvent: FormEvent<HTMLFormElement>) => {
+    formEvent.preventDefault()
+    setProjectId(saveProject(name.trim(), source, openId))
+  }
+
+  // The workflow stays in the editor, so deleting needs no confirmation: nothing on screen is lost.
+  const remove = async (id: string) => {
+    await removeRemoteProject(id)
+    removeProject(id)
+    setProjectId(undefined)
+    setName('')
+  }
+
   const job = run?.jobs.find((candidate) => candidate.key === selected) ?? run?.jobs[0]
 
   return (
@@ -95,7 +130,42 @@ export function PlaygroundPage() {
         {/* min-w-0 lets the graph scroll inside its own box; a grid item will not shrink below its content otherwise. */}
         <section className="min-w-0">
           <h2 className="font-mono text-sm">.github/workflows/ci.yml</h2>
-          <div className="mt-2">
+
+          <form onSubmit={save} className="mt-3 flex flex-wrap items-end gap-3">
+            <Input label="Project name" value={name} onChange={(changeEvent) => setName(changeEvent.target.value)} maxLength={80} required />
+            <Button type="submit" disabled={tooLong || full}>
+              {openId ? 'Save changes' : 'Save project'}
+            </Button>
+            <label className="flex flex-col gap-1 text-sm text-muted">
+              Open
+              <select
+                value={openId ?? ''}
+                onChange={(changeEvent) => open(changeEvent.target.value)}
+                className="rounded-base border border-rule bg-surface px-2 py-1.5 text-ink"
+              >
+                <option value="">Unsaved draft</option>
+                {Object.values(projects)
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            {openId ? (
+              <Button type="button" onClick={() => void remove(openId)}>
+                Delete project
+              </Button>
+            ) : null}
+          </form>
+          {/* One project the API would refuse would stop every sync, so the limits are enforced before saving. */}
+          {tooLong ? (
+            <p className="mt-2 text-xs text-caution">This workflow is longer than {MAX_SOURCE.toLocaleString()} characters, so it cannot be saved.</p>
+          ) : null}
+          {full ? <p className="mt-2 text-xs text-caution">You have {MAX_PROJECTS} saved projects. Delete one to save another.</p> : null}
+
+          <div className="mt-4">
             <WorkflowEditor value={source} onChange={setSource} onRun={startRun} onReady={(api) => (editor.current = api)} />
           </div>
           <SimNotice diagnostics={parsed?.diagnostics ?? []} onGoToLine={(line) => editor.current?.goToLine(line)} />

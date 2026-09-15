@@ -15,6 +15,13 @@
       "when": 1789463627060,
       "tag": "0001_reset_marker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789464081847,
+      "tag": "0002_project_marker",
+      "breakpoints": true
     }
   ]
 }

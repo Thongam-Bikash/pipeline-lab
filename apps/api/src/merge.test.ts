@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { dropCleared, mergeState, type Project, type State } from './merge.js'
+import { dropCleared, dropDeleted, mergeState, type Project, type State } from './merge.js'
 
 const state = (over: Partial<State> = {}): State => ({ lessons: {}, scenarios: {}, projects: {}, ...over })
 
@@ -96,6 +96,21 @@ it('is idempotent, so a retried sync changes nothing', () => {
 
   expect(mergeState(once, incoming)).toEqual(once)
   expect(mergeState(held, once)).toEqual(once)
+})
+
+it('passes everything through when nothing was deleted', () => {
+  const incoming = state({ projects: { p1: project() } })
+
+  expect(dropDeleted(incoming, new Set())).toBe(incoming)
+})
+
+it('refuses deleted projects, and leaves the rest alone', () => {
+  const incoming = state({
+    lessons: { a: { completedAt: '2026-09-01T10:00:00.000Z' } },
+    projects: { gone: project({ id: 'gone' }), kept: project({ id: 'kept' }) },
+  })
+
+  expect(dropDeleted(incoming, new Set(['gone']))).toEqual({ ...incoming, projects: { kept: incoming.projects.kept } })
 })
 
 it('passes everything through when progress was never reset', () => {

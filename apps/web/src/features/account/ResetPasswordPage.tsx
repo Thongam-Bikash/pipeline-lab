@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { Button } from '@/components/ui/Button/Button'
 import { authClient, explain } from './client'
-import { Input } from './Input'
+import { Input } from '@/components/ui/Input/Input'
 
 const link = 'text-signal underline underline-offset-4'
 

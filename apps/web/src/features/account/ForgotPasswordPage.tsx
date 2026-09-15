@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/Button/Button'
 import { authClient } from './client'
-import { Input } from './Input'
+import { Input } from '@/components/ui/Input/Input'
 
 export function ForgotPasswordPage() {
   const [pending, setPending] = useState(false)

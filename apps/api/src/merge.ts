@@ -48,6 +48,12 @@ export function mergeState(held: State, incoming: State): State {
   }
 }
 
+// Deleted projects stay deleted, though other devices still have a copy and send it back.
+export function dropDeleted(incoming: State, deleted: ReadonlySet<string>): State {
+  if (deleted.size === 0) return incoming
+  return { ...incoming, projects: Object.fromEntries(Object.entries(incoming.projects).filter(([id]) => !deleted.has(id))) }
+}
+
 // A reset must hold even though other devices still have their old copy and send it back.
 // ponytail: compares device clocks with the server's; a device running minutes slow can lose a lesson finished just after a reset.
 export function dropCleared(incoming: State, clearedAt: string | undefined): State {

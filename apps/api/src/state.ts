@@ -1,7 +1,7 @@
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import { user } from './auth-schema.js'
 import { db } from './db.js'
-import { dropCleared, mergeState, type State } from './merge.js'
+import { dropCleared, dropDeleted, mergeState, type State } from './merge.js'
 import { learner, project } from './schema.js'
 
 export const MAX_PROJECTS = 50
@@ -10,7 +10,10 @@ export class TooManyProjects extends Error {}
 
 async function readState(reader: Pick<typeof db, 'select'>, userId: string): Promise<State> {
   const [row] = await reader.select().from(learner).where(eq(learner.userId, userId))
-  const projects = await reader.select().from(project).where(eq(project.userId, userId))
+  const projects = await reader
+    .select()
+    .from(project)
+    .where(and(eq(project.userId, userId), isNull(project.deletedAt)))
   return {
     lessons: row?.lessons ?? {},
     scenarios: row?.scenarios ?? {},
@@ -25,8 +28,13 @@ export function syncState(userId: string, incoming: State): Promise<State> {
     await tx.insert(learner).values({ userId }).onConflictDoNothing()
     // Two devices syncing at once would otherwise read the same row and lose one update.
     const [row] = await tx.select({ clearedAt: learner.clearedAt }).from(learner).where(eq(learner.userId, userId)).for('update')
+    const deleted = await tx
+      .select({ id: project.id })
+      .from(project)
+      .where(and(eq(project.userId, userId), isNotNull(project.deletedAt)))
 
-    const merged = mergeState(await readState(tx, userId), dropCleared(incoming, row?.clearedAt?.toISOString()))
+    const accepted = dropDeleted(dropCleared(incoming, row?.clearedAt?.toISOString()), new Set(deleted.map((p) => p.id)))
+    const merged = mergeState(await readState(tx, userId), accepted)
     const projects = Object.values(merged.projects)
     if (projects.length > MAX_PROJECTS) throw new TooManyProjects()
 
@@ -42,8 +50,8 @@ export function syncState(userId: string, incoming: State): Promise<State> {
         .onConflictDoUpdate({
           target: project.id,
           set: { name: sql`excluded.name`, source: sql`excluded.source`, updatedAt: sql`excluded.updated_at` },
-          // An id that belongs to another account matches nothing, so it is never overwritten.
-          setWhere: eq(project.userId, userId),
+          // Another account's project, or a deleted one, matches nothing here, so neither is ever overwritten.
+          setWhere: and(eq(project.userId, userId), isNull(project.deletedAt)),
         })
     }
 
@@ -61,10 +69,13 @@ export async function clearProgress(userId: string) {
     .onConflictDoUpdate({ target: learner.userId, set: { lessons: {}, scenarios: {}, clearedAt: now, updatedAt: now } })
 }
 
+// Emptied rather than removed: the row remains only as a marker, with no name or workflow left in it.
 export async function deleteProject(userId: string, id: string) {
+  const now = new Date()
   const deleted = await db
-    .delete(project)
-    .where(and(eq(project.id, id), eq(project.userId, userId)))
+    .update(project)
+    .set({ name: '', source: '', deletedAt: now, updatedAt: now })
+    .where(and(eq(project.id, id), eq(project.userId, userId), isNull(project.deletedAt)))
     .returning({ id: project.id })
   return deleted.length > 0
 }
