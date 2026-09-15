@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { mergeState, type Project, type State } from './merge.js'
+import { dropCleared, mergeState, type Project, type State } from './merge.js'
 
 const state = (over: Partial<State> = {}): State => ({ lessons: {}, scenarios: {}, projects: {}, ...over })
 
@@ -96,6 +96,35 @@ it('is idempotent, so a retried sync changes nothing', () => {
 
   expect(mergeState(once, incoming)).toEqual(once)
   expect(mergeState(held, once)).toEqual(once)
+})
+
+it('passes everything through when progress was never reset', () => {
+  const incoming = state({ lessons: { a: { completedAt: '2026-09-01T10:00:00.000Z' } } })
+
+  expect(dropCleared(incoming, undefined)).toBe(incoming)
+})
+
+it('refuses progress from before the last reset, and keeps what came after', () => {
+  const clearedAt = '2026-09-10T00:00:00.000Z'
+  const incoming = state({
+    lessons: {
+      old: { completedAt: '2026-09-01T10:00:00.000Z' },
+      exact: { completedAt: clearedAt },
+      fresh: { completedAt: '2026-09-11T10:00:00.000Z', quizScore: 90 },
+    },
+    scenarios: {
+      old: { passedAt: '2026-09-02T10:00:00.000Z', hintsUsed: 0 },
+      fresh: { passedAt: '2026-09-12T10:00:00.000Z', hintsUsed: 1 },
+    },
+    projects: { p1: project({ updatedAt: '2026-09-01T10:00:00.000Z' }) },
+  })
+
+  expect(dropCleared(incoming, clearedAt)).toEqual({
+    lessons: { fresh: { completedAt: '2026-09-11T10:00:00.000Z', quizScore: 90 } },
+    scenarios: { fresh: { passedAt: '2026-09-12T10:00:00.000Z', hintsUsed: 1 } },
+    // A reset clears progress, not saved projects.
+    projects: incoming.projects,
+  })
 })
 
 it('converges on the same state however three devices interleave', () => {

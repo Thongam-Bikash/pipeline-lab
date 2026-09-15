@@ -47,3 +47,16 @@ export function mergeState(held: State, incoming: State): State {
     projects: mergeBy(held.projects, incoming.projects, newer),
   }
 }
+
+// A reset must hold even though other devices still have their old copy and send it back.
+// ponytail: compares device clocks with the server's; a device running minutes slow can lose a lesson finished just after a reset.
+export function dropCleared(incoming: State, clearedAt: string | undefined): State {
+  if (!clearedAt) return incoming
+  const since = <T>(record: Record<string, T>, at: (value: T) => string) =>
+    Object.fromEntries(Object.entries(record).filter(([, value]) => at(value) > clearedAt))
+  return {
+    ...incoming,
+    lessons: since(incoming.lessons, (lesson) => lesson.completedAt),
+    scenarios: since(incoming.scenarios, (scenario) => scenario.passedAt),
+  }
+}

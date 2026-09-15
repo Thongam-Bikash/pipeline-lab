@@ -116,6 +116,20 @@ describe.skipIf(!process.env.DATABASE_URL)('routes against Postgres', () => {
     await expect((await call('/api/state', { method: 'PUT', cookie, body: empty })).json()).resolves.toEqual(empty)
   })
 
+  it('does not let another device bring progress back after a reset', async () => {
+    const cookie = await signIn()
+    const beforeReset = { ...empty, lessons: { old: { completedAt: new Date(Date.now() - 60_000).toISOString() } } }
+    await call('/api/state', { method: 'PUT', cookie, body: beforeReset })
+    await call('/api/progress', { method: 'DELETE', cookie })
+
+    const laptop = await (await call('/api/state', { method: 'PUT', cookie, body: beforeReset })).json()
+    const afterReset = { ...empty, lessons: { fresh: { completedAt: new Date(Date.now() + 60_000).toISOString() } } }
+    const phone = await (await call('/api/state', { method: 'PUT', cookie, body: afterReset })).json()
+
+    expect(laptop.lessons).toEqual({})
+    expect(Object.keys(phone.lessons)).toEqual(['fresh'])
+  })
+
   it('exports your data as a download, with no credentials in it', async () => {
     const cookie = await signIn()
     await call('/api/state', { method: 'PUT', cookie, body: { ...empty, lessons: { 'anatomy/runners': { completedAt: '2026-09-20T10:00:00Z' } } } })

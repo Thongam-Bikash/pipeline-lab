@@ -1,7 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm'
 import { user } from './auth-schema.js'
 import { db } from './db.js'
-import { mergeState, type State } from './merge.js'
+import { dropCleared, mergeState, type State } from './merge.js'
 import { learner, project } from './schema.js'
 
 export const MAX_PROJECTS = 50
@@ -24,9 +24,9 @@ export function syncState(userId: string, incoming: State): Promise<State> {
   return db.transaction(async (tx) => {
     await tx.insert(learner).values({ userId }).onConflictDoNothing()
     // Two devices syncing at once would otherwise read the same row and lose one update.
-    await tx.select({ userId: learner.userId }).from(learner).where(eq(learner.userId, userId)).for('update')
+    const [row] = await tx.select({ clearedAt: learner.clearedAt }).from(learner).where(eq(learner.userId, userId)).for('update')
 
-    const merged = mergeState(await readState(tx, userId), incoming)
+    const merged = mergeState(await readState(tx, userId), dropCleared(incoming, row?.clearedAt?.toISOString()))
     const projects = Object.values(merged.projects)
     if (projects.length > MAX_PROJECTS) throw new TooManyProjects()
 
@@ -52,9 +52,13 @@ export function syncState(userId: string, incoming: State): Promise<State> {
   })
 }
 
-// ponytail: a device offline during a reset pushes its old progress back; add a clearedAt and drop older records if that bites.
+// Records when, so another device's old copy cannot bring the progress back. An upsert, so it holds before a first sync too.
 export async function clearProgress(userId: string) {
-  await db.update(learner).set({ lessons: {}, scenarios: {}, updatedAt: new Date() }).where(eq(learner.userId, userId))
+  const now = new Date()
+  await db
+    .insert(learner)
+    .values({ userId, clearedAt: now })
+    .onConflictDoUpdate({ target: learner.userId, set: { lessons: {}, scenarios: {}, clearedAt: now, updatedAt: now } })
 }
 
 export async function deleteProject(userId: string, id: string) {

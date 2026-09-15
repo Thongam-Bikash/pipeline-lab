@@ -9,6 +9,8 @@ export const learner = pgTable('learner', {
     .references(() => user.id, { onDelete: 'cascade' }),
   lessons: jsonb('lessons').$type<Record<string, LessonProgress>>().notNull().default({}),
   scenarios: jsonb('scenarios').$type<Record<string, ScenarioProgress>>().notNull().default({}),
+  // Set by a reset. Progress dated before it was reset away and is not accepted back.
+  clearedAt: timestamp('cleared_at', { withTimezone: true }),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
