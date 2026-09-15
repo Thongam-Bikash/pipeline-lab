@@ -7,6 +7,8 @@ x-logging: &logging
     max-size: "10m"
     max-file: "3"
 
+x-database-url: &database-url postgres://pipeline_lab:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in infra/.env}@db:5432/pipeline_lab
+
 services:
   web:
     image: ghcr.io/thongam-bikash/pipeline-lab-web:${IMAGE_TAG:-local}
@@ -43,17 +45,35 @@ services:
     restart: unless-stopped
     mem_limit: 256m
     environment:
+      DATABASE_URL: *database-url
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 10s
       timeout: 3s
       retries: 5
       start_period: 5s
+    logging: *logging
+
+  # One-shot: the schema is current before the API accepts a single request, and a failed
+  # migration leaves the API unstarted with the reason in this service's log.
+  migrate:
+    image: ghcr.io/thongam-bikash/pipeline-lab-api:${IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    command: ["node", "dist/migrate.js"]
+    restart: "no"
+    mem_limit: 128m
+    environment:
+      DATABASE_URL: *database-url
+    depends_on:
+      db:
+        condition: service_healthy
     logging: *logging
 
   db:
