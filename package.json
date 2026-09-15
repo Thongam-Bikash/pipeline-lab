@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @pipeline-lab/web",
-    "build": "npm run build -w @pipeline-lab/web",
+    "build": "npm run build --workspaces --if-present",
     "lint": "eslint .",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run --coverage",

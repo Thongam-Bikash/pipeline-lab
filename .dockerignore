@@ -2,9 +2,10 @@
 node_modules
 **/node_modules
 **/dist
-coverage
-playwright-report
-test-results
+# Patterns match from the context root, so these need **/ to catch them inside a workspace.
+**/coverage
+**/playwright-report
+**/test-results
 *.log
-.env
-.env.*
+**/.env
+**/.env.*
